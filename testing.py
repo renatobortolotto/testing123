@@ -1,24 +1,38 @@
-from pyspark.sql import functions as F
+import scipy
+from scipy import stats
 
 
-ESTADO_PILOTO = "sem_acao:::classe"
+SCHEMA = "ctg_dsti.renato_nba"
 
-cliente_validacao = (
-    F.pmod(F.xxhash64("cd_bv"), F.lit(1000)) == 1
+TABELAS_ORIGEM = {
+    "eventos_jornada": f"{SCHEMA}.base_jornadas_onboarding",
+    "base_passo_atual": f"{SCHEMA}.nba_sample",
+    "config_estados": f"{SCHEMA}.nba_config_sample",
+}
+
+TABELAS_DESTINO = {
+    "base_passo": f"{SCHEMA}.nba_base_passo_v1",
+    "modelo_transicoes": f"{SCHEMA}.nba_modelo_transicoes_v1",
+    "previsoes": f"{SCHEMA}.nba_previsoes_top5_v1",
+}
+
+print(f"Spark: {spark.version}")
+print(f"SciPy: {scipy.__version__}")
+print(
+    "Fuso da sessão:",
+    spark.conf.get("spark.sql.session.timeZone"),
 )
+print("CensoredData disponível:", hasattr(stats, "CensoredData"))
 
-validacao_temporal = (
-    transicoes_sm
-    .filter(F.col("origem") == ESTADO_PILOTO)
-    .filter(cliente_validacao)
-    .groupBy(
-        "tipo_censura",
-        "dur_min",
-        "dur_max",
+for descricao, tabela in TABELAS_ORIGEM.items():
+    print(f"\nFonte: {descricao}")
+    print(f"Tabela: {tabela}")
+    spark.table(tabela).printSchema()
+
+try:
+    spark.table("base_passo_raw").printSchema()
+except Exception as erro:
+    print(
+        "\nA view temporária base_passo_raw não pôde ser lida:",
+        type(erro).__name__,
     )
-    .agg(F.count("*").alias("peso"))
-)
-
-validacao_temporal.createOrReplaceGlobalTempView(
-    "nba_sm_tempo_validacao"
-)
