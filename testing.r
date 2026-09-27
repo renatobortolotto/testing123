@@ -1,67 +1,150 @@
 %r
 
-ajuste_lognormal <- modelos_tempo[["lognormal"]]
+max_grupos <- 200000L
 
-if (is.null(ajuste_lognormal) ||
-    !inherits(ajuste_lognormal, "survreg")) {
-  stop("O ajuste lognormal não foi encontrado em modelos_tempo.")
-}
-
-if (length(coef(ajuste_lognormal)) != 1L ||
-    length(ajuste_lognormal$scale) != 1L) {
-  stop("Este bloco pressupõe um modelo apenas com intercepto.")
-}
-
-mu <- unname(coef(ajuste_lognormal)[1])
-sigma <- unname(ajuste_lognormal$scale)
-
-if (!is.finite(mu) || !is.finite(sigma) || sigma <= 0) {
-  stop("O ajuste retornou parâmetros inválidos.")
-}
-
-# O modelo foi ajustado com as durações convertidas para dias.
-parametros_temporais <- data.frame(
-  estado = "sem_acao:::classe",
-  distribuicao = "lognormal",
-  unidade_tempo = "dias",
-  meanlog = mu,
-  sdlog = sigma,
-  mediana_dias = exp(mu)
+consulta <- sprintf(
+  "
+  SELECT tipo_censura, dur_min, dur_max, peso
+  FROM global_temp.nba_sm_tempo_validacao
+  LIMIT %d
+  ",
+  max_grupos + 1L
 )
 
-print(parametros_temporais, row.names = FALSE)
-
-# Compara diferentes tempos já transcorridos no silêncio.
-dias_decorridos <- c(1, 5, 10, 30)
-horizonte_dias <- 7
-
-log_s_atual <- stats::plnorm(
-  dias_decorridos,
-  meanlog = mu,
-  sdlog = sigma,
-  lower.tail = FALSE,
-  log.p = TRUE
+validacao <- dplyr::collect(
+  sparklyr::sdf_sql(sc, consulta)
 )
 
-log_s_futuro <- stats::plnorm(
-  dias_decorridos + horizonte_dias,
-  meanlog = mu,
-  sdlog = sigma,
-  lower.tail = FALSE,
-  log.p = TRUE
-)
-
-if (any(!is.finite(c(log_s_atual, log_s_futuro)))) {
-  stop("Não foi possível calcular as probabilidades nesses horizontes.")
+if (nrow(validacao) == 0L || nrow(validacao) > max_grupos) {
+  stop("A validação ficou vazia ou excedeu o limite de grupos.")
 }
 
-probabilidade_saida <- -expm1(log_s_futuro - log_s_atual)
+if (any(!is.finite(validacao$peso)) ||
+    any(validacao$peso <= 0)) {
+  stop("Foram encontrados pesos inválidos.")
+}
 
-previsoes_saida <- data.frame(
-  dias_ja_em_silencio = dias_decorridos,
-  horizonte_dias = horizonte_dias,
-  probabilidade_saida = probabilidade_saida,
-  percentual_saida = round(100 * probabilidade_saida, 2)
+# Mesma unidade utilizada no treinamento.
+validacao$inferior <- validacao$dur_min / 86400
+validacao$superior <- validacao$dur_max / 86400
+
+# Retorna log-densidade, log-CDF ou log-sobrevivência.
+log_funcao <- function(t, ajuste, densidade = FALSE,
+                       acumulada = FALSE) {
+  if (length(coef(ajuste)) != 1L ||
+      length(ajuste$scale) != 1L) {
+    stop("Este bloco exige modelos apenas com intercepto.")
+  }
+
+  mu <- unname(coef(ajuste)[1])
+  sigma <- unname(ajuste$scale)
+  familia <- ajuste$dist
+
+  if (!is.finite(mu) || !is.finite(sigma) || sigma <= 0) {
+    stop("Parâmetros inválidos no modelo.")
+  }
+
+  if (familia %in% c("weibull", "exponential")) {
+    if (densidade) {
+      return(dweibull(
+        t, shape = 1 / sigma, scale = exp(mu), log = TRUE
+      ))
+    }
+
+    return(pweibull(
+      t,
+      shape = 1 / sigma,
+      scale = exp(mu),
+      lower.tail = acumulada,
+      log.p = TRUE
+    ))
+  }
+
+  if (!familia %in% c("lognormal", "loglogistic")) {
+    stop(paste("Família não implementada:", familia))
+  }
+
+  z <- (log(t) - mu) / sigma
+
+  if (densidade) {
+    log_densidade <- if (familia == "lognormal") {
+      dnorm(z, log = TRUE)
+    } else {
+      dlogis(z, log = TRUE)
+    }
+
+    return(log_densidade - log(sigma) - log(t))
+  }
+
+  if (familia == "lognormal") {
+    return(pnorm(
+      z, lower.tail = acumulada, log.p = TRUE
+    ))
+  }
+
+  plogis(z, lower.tail = acumulada, log.p = TRUE)
+}
+
+avaliar_modelo <- function(familia) {
+  ajuste <- modelos_tempo[[familia]]
+
+  exata <- validacao$tipo_censura == "exata"
+  intervalo <- validacao$tipo_censura == "intervalo"
+  direita <- validacao$tipo_censura == "direita"
+
+  inferior <- validacao$inferior
+  superior <- validacao$superior
+  log_l <- rep(NA_real_, nrow(validacao))
+
+  log_l[exata] <- log_funcao(
+    inferior[exata], ajuste, densidade = TRUE
+  )
+
+  log_l[direita] <- log_funcao(
+    inferior[direita], ajuste
+  )
+
+  # Probabilidade intervalar: F(U) - F(L) = S(L) - S(U).
+  # Escolhe a cauda mais adequada para reduzir perda de precisão.
+  log_f_u <- log_funcao(
+    superior[intervalo], ajuste, acumulada = TRUE
+  )
+  log_f_l <- log_funcao(
+    inferior[intervalo], ajuste, acumulada = TRUE
+  )
+  log_s_l <- log_funcao(inferior[intervalo], ajuste)
+  log_s_u <- log_funcao(superior[intervalo], ajuste)
+
+  usar_cdf <- log_f_u < log(0.5)
+
+  log_maior <- ifelse(usar_cdf, log_f_u, log_s_l)
+  log_menor <- ifelse(usar_cdf, log_f_l, log_s_u)
+
+  log_l[intervalo] <- (
+    log_maior + log(-expm1(log_menor - log_maior))
+  )
+
+  if (any(!is.finite(log_l))) {
+    stop(paste(
+      "Contribuição inválida ou problema numérico em:", familia
+    ))
+  }
+
+  data.frame(
+    distribuicao = familia,
+    n_permanencias = sum(validacao$peso),
+    nll_media = -weighted.mean(log_l, validacao$peso)
+  )
+}
+
+validacao_modelos <- do.call(
+  rbind,
+  lapply(names(modelos_tempo), avaliar_modelo)
 )
 
-print(previsoes_saida, row.names = FALSE)
+validacao_modelos <- validacao_modelos[
+  order(validacao_modelos$nll_media),
+]
+
+rownames(validacao_modelos) <- NULL
+print(validacao_modelos, row.names = FALSE)
