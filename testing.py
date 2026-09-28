@@ -1,133 +1,218 @@
-from pyspark.sql import functions as F
-import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from matplotlib.ticker import PercentFormatter
+import numpy as np
+import pandas as pd
+from matplotlib.ticker import MaxNLocator
+from pyspark.sql import functions as F
+from scipy.stats import fisher_exact
 
-# ============================================================
-# 1. CONFIGURAÇÕES
-# ============================================================
 
-# Caso ainda não tenha carregado os dados:
-# df = spark.table("catalogo.schema.sua_tabela")
-
-COL_DATA = "sua_coluna_de_data"        # Substitua pelo nome real
-COL_METRICA = "sua_coluna_de_metrica"  # Substitua pelo nome real
-
-AGREGACAO = "media"  # Opções: "media", "soma" ou "contagem"
-
-# True para mostrar uma taxa decimal como percentual:
-# por exemplo, 0.15 aparecerá como 15%.
-FORMATAR_PERCENTUAL = False
-
-# ============================================================
-# 2. PREPARAÇÃO
-# ============================================================
-
+# 1. Preparação: mantenha convertidos E não convertidos.
 base = (
-    df
-    .withColumn("_data", F.to_date(F.col(COL_DATA)))
-    .withColumn("_digito", F.col("testedigito").cast("double"))
+    df.select(
+        F.date_trunc("week", F.col("dtinclusao"))
+        .cast("date")
+        .alias("semana"),
+        "cpf",
+        F.col("TesteDigito").cast("int").alias("testedigito"),
+        F.col("converteu").cast("int").alias("converteu"),
+    )
     .filter(
-        F.col("_data").isNotNull()
-        & F.col("_digito").isin(0, 1)
-    )
-    .withColumn(
-        "grupo",
-        F.when(F.col("_digito") == 1, F.lit("Controle"))
-         .otherwise(F.lit("Teste"))
-    )
-    .withColumn(
-        "semana",
-        F.date_trunc("week", F.col("_data")).cast("date")
+        F.col("semana").isNotNull()
+        & F.col("cpf").isNotNull()
+        & F.col("testedigito").isin(0, 1)
+        & F.col("converteu").isin(0, 1)
     )
 )
 
-# Para datas em texto no formato dd/MM/yyyy, substitua acima por:
-# F.to_date(F.col(COL_DATA), "dd/MM/yyyy")
+# Impede que o mesmo CPF participe dos dois grupos na mesma semana.
+conflitos = (
+    base.groupBy("semana", "cpf")
+    .agg(F.countDistinct("testedigito").alias("n_grupos"))
+    .filter(F.col("n_grupos") > 1)
+)
 
-# ============================================================
-# 3. AGREGAÇÃO SEMANAL
-# ============================================================
+if conflitos.limit(1).count():
+    raise ValueError(
+        "Existem CPFs nos dois grupos na mesma semana. "
+        "Revise a atribuição de teste e controle antes da comparação."
+    )
 
-if AGREGACAO == "media":
-    expressao = F.avg(F.col(COL_METRICA).cast("double"))
-    rotulo_y = f"Média de {COL_METRICA}"
 
-elif AGREGACAO == "soma":
-    expressao = F.sum(F.col(COL_METRICA).cast("double"))
-    rotulo_y = f"Soma de {COL_METRICA}"
-
-elif AGREGACAO == "contagem":
-    expressao = F.count(F.lit(1))
-    rotulo_y = "Quantidade de registros"
-
-else:
-    raise ValueError("AGREGACAO deve ser 'media', 'soma' ou 'contagem'.")
-
+# 2. Contagem de CPFs únicos por semana e grupo.
 resumo_semanal = (
-    base
-    .groupBy("semana", "grupo")
-    .agg(expressao.alias("valor"))
-    .orderBy("semana", "grupo")
+    base.groupBy("semana", "testedigito")
+    .agg(
+        F.countDistinct("cpf").alias("total"),
+        F.countDistinct(
+            F.when(F.col("converteu") == 1, F.col("cpf"))
+        ).alias("aprovados"),
+    )
+    .orderBy("semana", "testedigito")
 )
 
-display(resumo_semanal)
-
-# Apenas o resultado agregado é levado para pandas.
+# Apenas o resultado agregado é transferido para pandas.
 pdf = resumo_semanal.toPandas()
 
 if pdf.empty:
-    raise ValueError(
-        "Não há dados para plotar. Confira as datas e os valores de testedigito."
+    raise ValueError("Não há registros válidos para gerar o gráfico.")
+
+# Organiza teste e controle lado a lado.
+metricas = ["total", "aprovados"]
+
+resultado = (
+    pdf.pivot(
+        index="semana",
+        columns="testedigito",
+        values=metricas,
     )
-
-pdf["semana"] = pd.to_datetime(pdf["semana"])
-
-# Uma coluna por grupo e uma linha por semana.
-dados_grafico = (
-    pdf.pivot(index="semana", columns="grupo", values="valor")
-       .sort_index()
-       .reindex(columns=["Controle", "Teste"])
+    .reindex(
+        columns=pd.MultiIndex.from_product([metricas, [0, 1]])
+    )
+    .fillna(0)
+    .astype("int64")
+    .sort_index()
 )
 
-# Inclui semanas ausentes como lacunas, sem inventar valores zero.
-semanas = pd.date_range(
-    start=dados_grafico.index.min(),
-    end=dados_grafico.index.max(),
-    freq="W-MON"
-)
+resultado.columns = [
+    f"{metrica}_{'teste' if grupo == 0 else 'controle'}"
+    for metrica, grupo in resultado.columns
+]
 
-dados_grafico = dados_grafico.reindex(semanas)
+resultado = resultado.reset_index()
+resultado["semana"] = pd.to_datetime(resultado["semana"])
 
-# ============================================================
-# 4. GRÁFICO
-# ============================================================
 
-fig, ax = plt.subplots(figsize=(13, 5))
+# 3. Teste exato de Fisher por semana.
+def calcular_p_valor(linha: pd.Series) -> float:
+    """Compara as proporções de aprovação entre teste e controle."""
+    if linha["total_teste"] == 0 or linha["total_controle"] == 0:
+        return np.nan
 
-for grupo in ["Controle", "Teste"]:
-    ax.plot(
-        dados_grafico.index,
-        dados_grafico[grupo].astype(float),
-        marker="o",
-        linewidth=2,
-        label=f"{grupo} — testedigito = {1 if grupo == 'Controle' else 0}"
+    # Linhas: teste e controle.
+    # Colunas: aprovados e sem aprovação.
+    tabela = [
+        [
+            int(linha["aprovados_teste"]),
+            int(linha["total_teste"] - linha["aprovados_teste"]),
+        ],
+        [
+            int(linha["aprovados_controle"]),
+            int(linha["total_controle"] - linha["aprovados_controle"]),
+        ],
+    ]
+
+    return float(
+        fisher_exact(tabela, alternative="two-sided")[1]
     )
 
-ax.set_title("Comparação semanal — Controle x Teste")
-ax.set_xlabel("Semana — data de início")
-ax.set_ylabel(rotulo_y)
 
-if FORMATAR_PERCENTUAL:
-    ax.yaxis.set_major_formatter(PercentFormatter(xmax=1))
+resultado["p_valor"] = resultado.apply(calcular_p_valor, axis=1)
 
-ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m/%Y"))
+# Taxas e diferença em pontos percentuais para conferir a comparação.
+for grupo in ["teste", "controle"]:
+    resultado[f"taxa_{grupo}_pct"] = (
+        100
+        * resultado[f"aprovados_{grupo}"]
+        / resultado[f"total_{grupo}"].replace(0, np.nan)
+    )
 
-ax.legend()
-ax.grid(True, alpha=0.25)
+resultado["diferenca_pp"] = (
+    resultado["taxa_teste_pct"] - resultado["taxa_controle_pct"]
+)
 
-fig.autofmt_xdate()
+display(
+    resultado.round(
+        {
+            "taxa_teste_pct": 2,
+            "taxa_controle_pct": 2,
+            "diferenca_pp": 2,
+        }
+    )
+)
+
+
+# 4. Gráfico: aprovados em barras e p-valor acima de cada par.
+x = np.arange(len(resultado))
+largura = 0.36
+
+fig, ax = plt.subplots(
+    figsize=(max(12, len(resultado) * 1.8), 6.5)
+)
+
+barras_teste = ax.bar(
+    x - largura / 2,
+    resultado["aprovados_teste"],
+    width=largura,
+    label="Teste — TesteDigito = 0",
+)
+
+barras_controle = ax.bar(
+    x + largura / 2,
+    resultado["aprovados_controle"],
+    width=largura,
+    label="Controle — TesteDigito = 1",
+)
+
+# Quantidade de aprovados sobre cada barra.
+ax.bar_label(barras_teste, fmt="%.0f", padding=3)
+ax.bar_label(barras_controle, fmt="%.0f", padding=3)
+
+maior_barra = max(
+    1,
+    resultado[["aprovados_teste", "aprovados_controle"]]
+    .to_numpy()
+    .max(),
+)
+
+# P-valor centralizado acima de cada comparação semanal.
+for i, linha in resultado.iterrows():
+    altura = max(
+        linha["aprovados_teste"],
+        linha["aprovados_controle"],
+    )
+
+    p_valor = linha["p_valor"]
+    texto = (
+        "p = N/D"
+        if pd.isna(p_valor)
+        else f"p = {p_valor:.3g}"
+    )
+
+    ax.text(
+        x[i],
+        altura + maior_barra * 0.10,
+        texto,
+        ha="center",
+        va="bottom",
+        fontsize=11,
+    )
+
+ax.set_xticks(x)
+ax.set_xticklabels(
+    resultado["semana"].dt.strftime("%d/%m/%Y"),
+    rotation=45,
+    ha="right",
+)
+
+ax.set_xlabel("Semana de inclusão — início na segunda-feira")
+ax.set_ylabel("CPFs aprovados (converteu = 1)")
+ax.set_title(
+    "Aprovados por semana — Teste x Controle\n"
+    "p-valores: teste exato de Fisher bilateral",
+    pad=45,
+)
+
+ax.set_ylim(0, maior_barra * 1.35)
+ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+ax.set_axisbelow(True)
+ax.grid(axis="y", alpha=0.2)
+
+ax.legend(
+    loc="lower left",
+    bbox_to_anchor=(0, 1.02),
+    ncol=2,
+    frameon=False,
+)
+
 plt.tight_layout()
 plt.show()
