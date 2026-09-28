@@ -1,0 +1,25 @@
+Python: 3.13.5 | SciPy: 1.17.0
+
+test_01_pure_atom_requires_no_sdlog (__main__.TimeoutTests.test_01_pure_atom_requires_no_sdlog) ... ok
+test_02_mass_at_timeout_recovered (__main__.TimeoutTests.test_02_mass_at_timeout_recovered) ... ok
+test_03_cutoff_equality_uses_left_survival (__main__.TimeoutTests.test_03_cutoff_equality_uses_left_survival) ... ok
+test_04_atom_expired_is_not_static_fallback (__main__.TimeoutTests.test_04_atom_expired_is_not_static_fallback) ... ok
+test_05_horizon_exclusive_upper_boundary (__main__.TimeoutTests.test_05_horizon_exclusive_upper_boundary) ... ok
+test_06_normalization_and_time_dependence (__main__.TimeoutTests.test_06_normalization_and_time_dependence) ... ok
+test_07_joint_gradient (__main__.TimeoutTests.test_07_joint_gradient) ... ok
+test_08_censored_likelihood_is_mixture (__main__.TimeoutTests.test_08_censored_likelihood_is_mixture) ... ok
+test_09_interval_mass_formula (__main__.TimeoutTests.test_09_interval_mass_formula) ... ok
+test_10_silence_does_not_enter_rare_pool (__main__.TimeoutTests.test_10_silence_does_not_enter_rare_pool) ... ok
+test_11_legacy_predictions_preserved (__main__.TimeoutTests.test_11_legacy_predictions_preserved) ... ok
+test_12_no_top5_renormalization (__main__.TimeoutTests.test_12_no_top5_renormalization) ... ok
+test_13_bounds_remain_for_non_structural_constant (__main__.TimeoutTests.test_13_bounds_remain_for_non_structural_constant) ... ok
+test_14_minimum_support_unchanged (__main__.TimeoutTests.test_14_minimum_support_unchanged) ... ok
+test_15_no_imputation_of_intervals (__main__.TimeoutTests.test_15_no_imputation_of_intervals) ... ok
+test_16_independent_audit_and_corruption_detection (__main__.TimeoutTests.test_16_independent_audit_and_corruption_detection) ... ok
+test_17_unsupported_input_preserved (__main__.TimeoutTests.test_17_unsupported_input_preserved) ... ok
+test_18_json_has_no_nan (__main__.TimeoutTests.test_18_json_has_no_nan) ... ok
+test_19_lower_support_silence_is_rejected (__main__.TimeoutTests.test_19_lower_support_silence_is_rejected) ... ok
+test_20_shifted_tail_not_constant_1800 (__main__.TimeoutTests.test_20_shifted_tail_not_constant_1800) ... ok
+----------------------------------------------------------------------
+Ran 20 tests in 0.117s
+OK
