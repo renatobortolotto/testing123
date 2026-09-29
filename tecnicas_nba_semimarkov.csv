@@ -1,0 +1,19 @@
+﻿Ordem,Técnica / Método,Onde entra,Motivo de uso,Saída principal
+1,SQL + PySpark / Databricks,Preparação dos dados,Processar o grande volume histórico de eventos de forma distribuída e reproduzível.,Base bruta de eventos por cliente
+2,"Window Functions (lag, lead, row_number)",Ordenação das jornadas,Reconstruir a sequência temporal de eventos de cada cliente e identificar o evento anterior e seguinte.,Eventos ordenados por cliente
+3,Construção de estados comportamentais,Representação da jornada,"Transformar eventos granulares em estados interpretáveis, como login, navegação, consulta, atendimento etc.",Sequência de estados
+4,Sessionização / consolidação de blocos,Construção da jornada,Unificar eventos consecutivos pertencentes ao mesmo comportamento e evitar tratar cada evento técnico como uma nova ação.,Blocos de permanência por estado
+5,Timeout de inatividade — 30 min,Identificação do silêncio,"Representar períodos em que o cliente deixa de interagir, criando um estado explícito de sem_acao.",Estado de silêncio e início da inatividade
+6,Sojourn Time — tempo de permanência,Componente temporal,Medir quanto tempo o cliente permanece em cada estado antes de uma nova transição. É a informação que diferencia Semi-Markov de Markov simples.,Duração do estado
+7,Tratamento de censura,Preparação estatística,"Utilizar também jornadas cujo próximo evento ainda não foi observado, evitando descartar clientes ainda permanentes no estado.",Observações exatas e censuradas
+8,Probabilidades de transição p(i→j),Componente de destino,Aprender historicamente quais estados costumam ocorrer após cada estado atual.,Probabilidade inicial de cada próximo destino
+9,Análise de sobrevivência S(t),Componente temporal,Estimar a probabilidade de uma permanência continuar além de determinado tempo e incorporar o tempo já transcorrido.,Função de sobrevivência por componente temporal
+10,Comparação de distribuições,Escolha da modelagem temporal,"Testar qual distribuição representa melhor os tempos observados. Foram avaliadas Lognormal, Weibull, Exponencial e Log-logística.",Família temporal selecionada
+11,Log-likelihood + AIC + Holdout,Validação estatística,Comparar distribuições e verificar se o comportamento observado no treinamento permanece em clientes não utilizados no ajuste.,Evidência para escolha do modelo temporal
+12,Pooling de destinos raros,Controle de esparsidade,"Evitar ajustar distribuições independentes para transições com poucas observações, reduzindo instabilidade e quantidade de parâmetros.",Grupos temporais com maior suporte
+13,Massa pontual no timeout + Lognormal no excesso,Tratamento do timeout estrutural,"Representar corretamente durações concentradas exatamente em 1.800 segundos por causa da regra operacional, combinando massa pontual e distribuição contínua.",Distribuição temporal híbrida
+14,Modelo Semi-Markov,Núcleo do modelo,Combinar qual será o próximo estado com há quanto tempo o cliente já está no estado atual.,Probabilidade temporal da próxima ação
+15,Condicionamento pelo tempo já transcorrido,Inferência diária,Atualizar as probabilidades sabendo que o cliente já permaneceu determinado tempo no estado sem sair dele.,"P(próxima ação | estado, tempo)"
+16,Ranking Top-K,Geração da recomendação,Ordenar os possíveis destinos pela probabilidade calculada e selecionar as alternativas mais relevantes.,Top 1 e Top 5 por cliente
+17,Validação Top-1 / Top-5 / NLL / cobertura,Avaliação do MVP,"Medir acerto do ranking, qualidade probabilística e percentual de casos em que o modelo consegue emitir previsão.",Métricas de qualidade e cobertura
+18,Aplicação diária com customers_query,Produção / scoring,Separar treinamento da aplicação. O histórico aprende o comportamento; customers_query determina quais clientes precisam de previsão no dia.,Output diário por cliente
