@@ -4,6 +4,7 @@ import pandas as pd
 from matplotlib.ticker import MaxNLocator
 from pyspark.sql import functions as F
 from scipy.stats import fisher_exact
+from statsmodels.stats.proportion import proportions_ztest
 
 
 # 1. Preparação: mantenha convertidos E não convertidos.
@@ -56,7 +57,6 @@ pdf = resumo_semanal.toPandas()
 if pdf.empty:
     raise ValueError("Não há registros válidos para gerar o gráfico.")
 
-# Organiza teste e controle lado a lado.
 metricas = ["total", "aprovados"]
 
 resultado = (
@@ -82,33 +82,68 @@ resultado = resultado.reset_index()
 resultado["semana"] = pd.to_datetime(resultado["semana"])
 
 
-# 3. Teste exato de Fisher por semana.
-def calcular_p_valor(linha: pd.Series) -> float:
+# 3. Testes de Fisher e Z, ambos bilaterais, por semana.
+def calcular_testes(linha: pd.Series) -> pd.Series:
     """Compara as proporções de aprovação entre teste e controle."""
-    if linha["total_teste"] == 0 or linha["total_controle"] == 0:
-        return np.nan
+    # Ordem dos grupos: teste primeiro, controle depois.
+    aprovados = np.array(
+        [linha["aprovados_teste"], linha["aprovados_controle"]],
+        dtype=np.int64,
+    )
 
-    # Linhas: teste e controle.
-    # Colunas: aprovados e sem aprovação.
-    tabela = [
-        [
-            int(linha["aprovados_teste"]),
-            int(linha["total_teste"] - linha["aprovados_teste"]),
-        ],
-        [
-            int(linha["aprovados_controle"]),
-            int(linha["total_controle"] - linha["aprovados_controle"]),
-        ],
-    ]
+    totais = np.array(
+        [linha["total_teste"], linha["total_controle"]],
+        dtype=np.int64,
+    )
 
-    return float(
+    testes = {
+        "p_valor_fisher": np.nan,
+        "p_valor_z": np.nan,
+        "estatistica_z": np.nan,
+    }
+
+    # Sem clientes em algum grupo, não há comparação.
+    if np.any(totais == 0):
+        return pd.Series(testes)
+
+    # Fisher: linhas = grupos; colunas = aprovados e não aprovados.
+    tabela = np.column_stack(
+        (aprovados, totais - aprovados)
+    )
+
+    testes["p_valor_fisher"] = float(
         fisher_exact(tabela, alternative="two-sided")[1]
     )
 
+    # Z: evita variância zero quando todos, nos dois grupos,
+    # foram aprovados ou quando ninguém foi aprovado.
+    if 0 < aprovados.sum() < totais.sum():
+        estatistica_z, p_valor_z = proportions_ztest(
+            count=aprovados,
+            nobs=totais,
+            value=0,
+            alternative="two-sided",
+            prop_var=False,
+        )
 
-resultado["p_valor"] = resultado.apply(calcular_p_valor, axis=1)
+        testes["p_valor_z"] = float(p_valor_z)
+        testes["estatistica_z"] = float(estatistica_z)
 
-# Taxas e diferença em pontos percentuais para conferir a comparação.
+    return pd.Series(testes)
+
+
+colunas_testes = [
+    "p_valor_fisher",
+    "p_valor_z",
+    "estatistica_z",
+]
+
+resultado[colunas_testes] = resultado.apply(
+    calcular_testes,
+    axis=1,
+)
+
+# Taxas e diferença em pontos percentuais.
 for grupo in ["teste", "controle"]:
     resultado[f"taxa_{grupo}_pct"] = (
         100
@@ -126,17 +161,23 @@ display(
             "taxa_teste_pct": 2,
             "taxa_controle_pct": 2,
             "diferenca_pp": 2,
+            "estatistica_z": 3,
         }
     )
 )
 
 
-# 4. Gráfico: aprovados em barras e p-valor acima de cada par.
+# 4. Gráfico: aprovados em barras e os dois p-valores acima.
+def formatar_p_valor(valor: float) -> str:
+    """Formata o p-valor sem arredondar valores pequenos para 0,000."""
+    return "N/D" if pd.isna(valor) else f"{valor:.3g}"
+
+
 x = np.arange(len(resultado))
 largura = 0.36
 
 fig, ax = plt.subplots(
-    figsize=(max(12, len(resultado) * 1.8), 6.5)
+    figsize=(max(12, len(resultado) * 1.8), 7)
 )
 
 barras_teste = ax.bar(
@@ -164,18 +205,19 @@ maior_barra = max(
     .max(),
 )
 
-# P-valor centralizado acima de cada comparação semanal.
-for i, linha in resultado.iterrows():
+# P-valores centralizados acima de cada comparação semanal.
+for i, (_, linha) in enumerate(resultado.iterrows()):
     altura = max(
         linha["aprovados_teste"],
         linha["aprovados_controle"],
     )
 
-    p_valor = linha["p_valor"]
+    p_fisher = formatar_p_valor(linha["p_valor_fisher"])
+    p_z = formatar_p_valor(linha["p_valor_z"])
+
     texto = (
-        "p = N/D"
-        if pd.isna(p_valor)
-        else f"p = {p_valor:.3g}"
+        f"Fisher: p = {p_fisher}\n"
+        f"Z: p = {p_z}"
     )
 
     ax.text(
@@ -184,7 +226,8 @@ for i, linha in resultado.iterrows():
         texto,
         ha="center",
         va="bottom",
-        fontsize=11,
+        fontsize=10,
+        linespacing=1.4,
     )
 
 ax.set_xticks(x)
@@ -198,11 +241,12 @@ ax.set_xlabel("Semana de inclusão — início na segunda-feira")
 ax.set_ylabel("CPFs aprovados (converteu = 1)")
 ax.set_title(
     "Aprovados por semana — Teste x Controle\n"
-    "p-valores: teste exato de Fisher bilateral",
+    "p-valores: Fisher e Z para duas proporções, ambos bilaterais",
     pad=45,
 )
 
-ax.set_ylim(0, maior_barra * 1.35)
+# Espaço adicional para as duas linhas de p-valores.
+ax.set_ylim(0, maior_barra * 1.50)
 ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 ax.set_axisbelow(True)
 ax.grid(axis="y", alpha=0.2)
@@ -214,5 +258,7 @@ ax.legend(
     frameon=False,
 )
 
-plt.tight_layout()
-plt.show()
+# Exibe a figura explicitamente no Databricks.
+fig.tight_layout()
+display(fig)
+plt.close(fig)
