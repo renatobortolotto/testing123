@@ -1,100 +1,48 @@
 from pyspark.sql import functions as F
 
 
-fonte = spark.table(SM22_CFG["fonte_aplicacao"])
-
-clientes_amostra = (
-    base_treino_v22
-    .select("cd_bv")
-    .distinct()
+autos = base_treino_v22.filter(
+    F.col("autotransicao")
 )
 
-eventos_amostra = (
-    fonte
-    .select(
-        "cd_bv",
-        "dm_navegacao",
-        "estado",
-        "profundidade_max",
-    )
-    .join(
-        F.broadcast(clientes_amostra),
-        "cd_bv",
-        "left_semi",
-    )
-    .filter(
-        F.col("dm_navegacao").isNotNull()
-        & F.col("estado").isNotNull()
-    )
-)
+print("RESUMO DAS AUTOTRANSICOES")
 
-empates = (
-    eventos_amostra
-    .groupBy(
-        "cd_bv",
-        "dm_navegacao",
-    )
-    .agg(
-        F.countDistinct("estado").alias("n_estados"),
-        F.countDistinct("profundidade_max").alias(
-            "n_profundidades"
-        ),
-        F.sum(
-            F.col("profundidade_max").isNull().cast("long")
-        ).alias("n_profundidade_null"),
-        F.count("*").alias("n_linhas"),
-    )
-    .filter(
-        F.col("n_estados") > 1
-    )
-)
-
-print("RESUMO DOS EMPATES")
-
-empates.agg(
-    F.count("*").alias("n_momentos_ambiguos"),
+autos.agg(
+    F.count("*").alias("n_autotransicoes"),
     F.countDistinct("cd_bv").alias("n_clientes"),
-    F.sum(
-        (
-            (F.col("n_estados") == F.col("n_profundidades"))
-            & (F.col("n_profundidade_null") == 0)
-        ).cast("long")
-    ).alias("n_potencialmente_ordenaveis"),
-).show(truncate=False)
-
-
-
-
-
-
-
-chaves_exemplo = (
-    empates
-    .orderBy(
-        F.desc("n_estados")
-    )
-    .limit(100)
-    .select(
-        "cd_bv",
-        "dm_navegacao",
-    )
+    F.avg(
+        (F.col("dur_min") <= 1).cast("double")
+    ).alias("pct_ate_1s"),
+    F.avg(
+        (F.col("dur_min") <= 5).cast("double")
+    ).alias("pct_ate_5s"),
+    F.avg(
+        (F.col("dur_min") <= 30).cast("double")
+    ).alias("pct_ate_30s"),
+    F.avg(
+        (F.col("dur_min") <= 300).cast("double")
+    ).alias("pct_ate_5min"),
+).show(
+    truncate=False
 )
 
-exemplos = (
-    eventos_amostra
-    .join(
-        F.broadcast(chaves_exemplo),
-        ["cd_bv", "dm_navegacao"],
-        "inner",
-    )
-    .orderBy(
-        "cd_bv",
-        "dm_navegacao",
-        "profundidade_max",
-    )
-)
 
-exemplos.show(
-    300,
-    truncate=False,
+print("ESTADOS COM MAIS AUTOTRANSICOES")
+
+(
+    autos
+    .groupBy("estado")
+    .agg(
+        F.count("*").alias("n"),
+        F.countDistinct("cd_bv").alias("n_clientes"),
+        F.expr(
+            "percentile_approx("
+            "dur_min, array(0.5, 0.9, 0.99), 10000)"
+        ).alias("quantis_seg"),
+    )
+    .orderBy(F.desc("n"))
+    .show(
+        30,
+        truncate=False,
+    )
 )
