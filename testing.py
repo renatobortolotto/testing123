@@ -1,44 +1,104 @@
 from pyspark.sql import functions as F
 
 
-HOLDOUT_BUCKETS = [1, 2]
+fonte = spark.table(SM22_CFG["fonte_aplicacao"])
 
-eventos_holdout = (
-    sm_ler_eventos(
-        SM_CFG["fonte_treino"],
-        SM_CFG["inicio_treino"],
-        SM_CFG["corte_treino_exclusivo"],
+print(
+    "Tem profundidade_max:",
+    "profundidade_max" in fonte.columns,
+)
+
+empatados = (
+    fonte
+    .select(
+        "cd_bv",
+        "dm_navegacao",
+        "estado",
+        "profundidade_max",
     )
     .filter(
-        F.pmod(
-            F.xxhash64(
-                "cd_bv",
-                F.lit(SM_CFG["sal_treino"]),
-            ),
-            F.lit(SM_CFG["modulo_amostra_treino"]),
-        ).isin(HOLDOUT_BUCKETS)
+        F.col("cd_bv").isNotNull()
+        & F.col("dm_navegacao").isNotNull()
+        & F.col("estado").isNotNull()
+    )
+    .groupBy(
+        "cd_bv",
+        "dm_navegacao",
+    )
+    .agg(
+        F.countDistinct("estado").alias("n_estados"),
+        F.countDistinct("profundidade_max").alias(
+            "n_profundidades"
+        ),
+        F.sort_array(
+            F.collect_set("estado")
+        ).alias("estados"),
+        F.sort_array(
+            F.collect_set("profundidade_max")
+        ).alias("profundidades"),
+    )
+    .filter(
+        F.col("n_estados") > 1
     )
 )
 
-base = (
-    sm_preparar_passos(
-        eventos_holdout,
-        SM_CFG["corte_treino_exclusivo"],
-        "holdout_externo",
-    )
+print("RESUMO DOS EMPATES")
+
+empatados.agg(
+    F.count("*").alias("n_momentos_ambiguos"),
+    F.countDistinct("cd_bv").alias("n_clientes"),
+    F.sum(
+        (
+            F.col("n_estados")
+            == F.col("n_profundidades")
+        ).cast("long")
+    ).alias("n_potencialmente_ordenaveis"),
+).show(
+    truncate=False
+)
+
+
+print("COMBINACOES MAIS FREQUENTES")
+
+(
+    empatados
     .withColumn(
-        "validacao_cliente",
-        F.lit(True),
+        "combinacao",
+        F.concat_ws(
+            " -> ",
+            "estados",
+        ),
     )
-    .persist()
+    .groupBy(
+        "combinacao",
+        "n_estados",
+        "n_profundidades",
+    )
+    .count()
+    .orderBy(
+        F.desc("count")
+    )
+    .show(
+        30,
+        truncate=False,
+    )
 )
 
-print(
-    "Clientes holdout externo:",
-    base.select("cd_bv").distinct().count(),
-)
 
-print(
-    "Linhas holdout externo:",
-    base.count(),
+print("EXEMPLOS COM PROFUNDIDADE")
+
+(
+    empatados
+    .select(
+        "cd_bv",
+        "dm_navegacao",
+        "estados",
+        "profundidades",
+        "n_estados",
+        "n_profundidades",
+    )
+    .show(
+        30,
+        truncate=False,
+    )
 )
