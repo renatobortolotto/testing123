@@ -3,12 +3,13 @@ from pyspark.sql import functions as F
 
 fonte = spark.table(SM22_CFG["fonte_aplicacao"])
 
-print(
-    "Tem profundidade_max:",
-    "profundidade_max" in fonte.columns,
+clientes_amostra = (
+    base_treino_v22
+    .select("cd_bv")
+    .distinct()
 )
 
-empatados = (
+eventos_amostra = (
     fonte
     .select(
         "cd_bv",
@@ -16,11 +17,19 @@ empatados = (
         "estado",
         "profundidade_max",
     )
+    .join(
+        F.broadcast(clientes_amostra),
+        "cd_bv",
+        "left_semi",
+    )
     .filter(
-        F.col("cd_bv").isNotNull()
-        & F.col("dm_navegacao").isNotNull()
+        F.col("dm_navegacao").isNotNull()
         & F.col("estado").isNotNull()
     )
+)
+
+empates = (
+    eventos_amostra
     .groupBy(
         "cd_bv",
         "dm_navegacao",
@@ -30,12 +39,10 @@ empatados = (
         F.countDistinct("profundidade_max").alias(
             "n_profundidades"
         ),
-        F.sort_array(
-            F.collect_set("estado")
-        ).alias("estados"),
-        F.sort_array(
-            F.collect_set("profundidade_max")
-        ).alias("profundidades"),
+        F.sum(
+            F.col("profundidade_max").isNull().cast("long")
+        ).alias("n_profundidade_null"),
+        F.count("*").alias("n_linhas"),
     )
     .filter(
         F.col("n_estados") > 1
@@ -44,61 +51,50 @@ empatados = (
 
 print("RESUMO DOS EMPATES")
 
-empatados.agg(
+empates.agg(
     F.count("*").alias("n_momentos_ambiguos"),
     F.countDistinct("cd_bv").alias("n_clientes"),
     F.sum(
         (
-            F.col("n_estados")
-            == F.col("n_profundidades")
+            (F.col("n_estados") == F.col("n_profundidades"))
+            & (F.col("n_profundidade_null") == 0)
         ).cast("long")
     ).alias("n_potencialmente_ordenaveis"),
-).show(
-    truncate=False
-)
+).show(truncate=False)
 
 
-print("COMBINACOES MAIS FREQUENTES")
 
-(
-    empatados
-    .withColumn(
-        "combinacao",
-        F.concat_ws(
-            " -> ",
-            "estados",
-        ),
-    )
-    .groupBy(
-        "combinacao",
-        "n_estados",
-        "n_profundidades",
-    )
-    .count()
+
+
+
+
+chaves_exemplo = (
+    empates
     .orderBy(
-        F.desc("count")
+        F.desc("n_estados")
     )
-    .show(
-        30,
-        truncate=False,
-    )
-)
-
-
-print("EXEMPLOS COM PROFUNDIDADE")
-
-(
-    empatados
+    .limit(100)
     .select(
         "cd_bv",
         "dm_navegacao",
-        "estados",
-        "profundidades",
-        "n_estados",
-        "n_profundidades",
     )
-    .show(
-        30,
-        truncate=False,
+)
+
+exemplos = (
+    eventos_amostra
+    .join(
+        F.broadcast(chaves_exemplo),
+        ["cd_bv", "dm_navegacao"],
+        "inner",
     )
+    .orderBy(
+        "cd_bv",
+        "dm_navegacao",
+        "profundidade_max",
+    )
+)
+
+exemplos.show(
+    300,
+    truncate=False,
 )
