@@ -1,48 +1,85 @@
 from pyspark.sql import functions as F
 
 
-autos = base_treino_v22.filter(
-    F.col("autotransicao")
+TABELA_MODELOS_V22 = (
+    "ctg_dsti.renato_nba.nba_sm_v22_modelos_hml"
 )
 
-print("RESUMO DAS AUTOTRANSICOES")
+TABELA_VALIDACAO_V22 = (
+    "ctg_dsti.renato_nba.nba_sm_v22_validacao_hml"
+)
 
-autos.agg(
-    F.count("*").alias("n_autotransicoes"),
-    F.countDistinct("cd_bv").alias("n_clientes"),
-    F.avg(
-        (F.col("dur_min") <= 1).cast("double")
-    ).alias("pct_ate_1s"),
-    F.avg(
-        (F.col("dur_min") <= 5).cast("double")
-    ).alias("pct_ate_5s"),
-    F.avg(
-        (F.col("dur_min") <= 30).cast("double")
-    ).alias("pct_ate_30s"),
-    F.avg(
-        (F.col("dur_min") <= 300).cast("double")
-    ).alias("pct_ate_5min"),
-).show(
-    truncate=False
+TABELA_PREVISOES_V22 = (
+    "ctg_dsti.renato_nba.nba_sm_v22_previsoes_hml"
+)
+
+TABELA_BASE_V22 = (
+    "ctg_dsti.renato_nba.nba_sm_v22_base_treino_hml"
 )
 
 
-print("ESTADOS COM MAIS AUTOTRANSICOES")
+def adicionar_metadados(df):
+    return (
+        df
+        .withColumn(
+            "id_execucao",
+            F.lit(SM22_ID_EXECUCAO),
+        )
+        .withColumn(
+            "versao_modelo",
+            F.lit(SM22_CFG["versao_modelo"]),
+        )
+        .withColumn(
+            "gravado_em",
+            F.current_timestamp(),
+        )
+    )
 
+
+# 1. Modelo ajustado
 (
-    autos
-    .groupBy("estado")
-    .agg(
-        F.count("*").alias("n"),
-        F.countDistinct("cd_bv").alias("n_clientes"),
-        F.expr(
-            "percentile_approx("
-            "dur_min, array(0.5, 0.9, 0.99), 10000)"
-        ).alias("quantis_seg"),
-    )
-    .orderBy(F.desc("n"))
-    .show(
-        30,
-        truncate=False,
-    )
+    adicionar_metadados(sm22_modelos)
+    .write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable(TABELA_MODELOS_V22)
 )
+
+
+# 2. Validacao
+(
+    adicionar_metadados(sm22_validacao)
+    .write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable(TABELA_VALIDACAO_V22)
+)
+
+
+# 3. Scoring da amostra
+(
+    adicionar_metadados(sm22_previsoes)
+    .write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable(TABELA_PREVISOES_V22)
+)
+
+
+# 4. Base preparada
+# Vale salvar porque evita ter que refazer toda a Parte 01.
+(
+    adicionar_metadados(base_treino_v22)
+    .write
+    .format("delta")
+    .mode("overwrite")
+    .saveAsTable(TABELA_BASE_V22)
+)
+
+
+print("Artefatos V2.2 persistidos.")
+
+print(TABELA_MODELOS_V22)
+print(TABELA_VALIDACAO_V22)
+print(TABELA_PREVISOES_V22)
+print(TABELA_BASE_V22)
