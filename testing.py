@@ -1,85 +1,55 @@
 from pyspark.sql import functions as F
 
 
-TABELA_MODELOS_V22 = (
-    "ctg_dsti.renato_nba.nba_sm_v22_modelos_hml"
+TABELA_ORIGEM = (
+    "ctg_dsti.renato_nba."
+    "nba_semimarkov_v222_macroaware_long_hml"
 )
 
-TABELA_VALIDACAO_V22 = (
-    "ctg_dsti.renato_nba.nba_sm_v22_validacao_hml"
+TABELA_NEGOCIO = (
+    "ctg_dsti.renato_nba."
+    "nba_semimarkov_v222_negocio_hml"
 )
 
-TABELA_PREVISOES_V22 = (
-    "ctg_dsti.renato_nba.nba_sm_v22_previsoes_hml"
-)
+if not spark.catalog.tableExists(TABELA_ORIGEM):
+    raise RuntimeError(f"Tabela não encontrada: {TABELA_ORIGEM}")
 
-TABELA_BASE_V22 = (
-    "ctg_dsti.renato_nba.nba_sm_v22_base_treino_hml"
-)
-
-
-def adicionar_metadados(df):
-    return (
-        df
-        .withColumn(
-            "id_execucao",
-            F.lit(SM22_ID_EXECUCAO),
-        )
-        .withColumn(
-            "versao_modelo",
-            F.lit(SM22_CFG["versao_modelo"]),
-        )
-        .withColumn(
-            "gravado_em",
-            F.current_timestamp(),
-        )
+# Seleciona somente clientes com ações previstas, preservando o ranking.
+base_negocio = (
+    spark.table(TABELA_ORIGEM)
+    .filter(
+        F.col("ranking_actionable").between(1, 5)
+        & F.col("actionable_acao").isNotNull()
+        & F.col("actionable_score").isNotNull()
     )
-
-
-# 1. Modelo ajustado
-(
-    adicionar_metadados(sm22_modelos)
-    .write
-    .format("delta")
-    .mode("overwrite")
-    .saveAsTable(TABELA_MODELOS_V22)
+    .select(
+        F.to_date("ts_corte_eventos").alias("data_referencia"),
+        F.col("cd_bv"),
+        F.col("macro_atual").alias("acao_atual"),
+        F.col("ranking_actionable").cast("int").alias("ranking"),
+        F.col("actionable_acao").alias("proxima_acao"),
+        F.col("actionable_score").cast("double").alias("score_acao"),
+    )
 )
 
-
-# 2. Validacao
+# Substitui apenas a tabela de negócio; a tabela analítica é preservada.
 (
-    adicionar_metadados(sm22_validacao)
-    .write
+    base_negocio.write
     .format("delta")
     .mode("overwrite")
-    .saveAsTable(TABELA_VALIDACAO_V22)
+    .option("overwriteSchema", "true")
+    .saveAsTable(TABELA_NEGOCIO)
 )
 
+print(f"Tabela de negócio salva em: {TABELA_NEGOCIO}")
 
-# 3. Scoring da amostra
-(
-    adicionar_metadados(sm22_previsoes)
-    .write
-    .format("delta")
-    .mode("overwrite")
-    .saveAsTable(TABELA_PREVISOES_V22)
+display(spark.table(TABELA_NEGOCIO).limit(20))
+
+
+CD_BV_ANALISE = "COLOQUE_O_ID_AQUI"
+
+display(
+    spark.table(TABELA_NEGOCIO)
+    .filter(F.col("cd_bv") == CD_BV_ANALISE)
+    .orderBy("ranking")
 )
-
-
-# 4. Base preparada
-# Vale salvar porque evita ter que refazer toda a Parte 01.
-(
-    adicionar_metadados(base_treino_v22)
-    .write
-    .format("delta")
-    .mode("overwrite")
-    .saveAsTable(TABELA_BASE_V22)
-)
-
-
-print("Artefatos V2.2 persistidos.")
-
-print(TABELA_MODELOS_V22)
-print(TABELA_VALIDACAO_V22)
-print(TABELA_PREVISOES_V22)
-print(TABELA_BASE_V22)
