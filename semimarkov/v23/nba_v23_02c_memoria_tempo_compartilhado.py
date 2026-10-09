@@ -1,15 +1,15 @@
 # Databricks notebook source
-# MAGIC %md
-# MAGIC # NBA V2.3 — Parte 02C: memória com tempo compartilhado
-# MAGIC
-# MAGIC Compara A × B × B2 no MESMO holdout persistido na Parte 02.
-# MAGIC B2 usa p(destino) de B e sobrevivências de A, alinhadas por destino.
-# MAGIC Não treina, não seleciona lambdas/limites e não executa Multi-step.
-# MAGIC Não altera V2.2, V2.3 anteriores nem a tabela de negócio.
-# MAGIC
-# MAGIC B2 é uma recombinação de parâmetros, NÃO um ajuste restrito otimizado.
-# MAGIC Onde B já reutiliza A, B2 também reutiliza A sem nenhuma alteração.
-# MAGIC Idade é o tempo JÁ transcorrido, não uma janela futura em dias.
+ %md
+ # NBA V2.3 — Parte 02C: memória com tempo compartilhado
+
+ Compara A × B × B2 no MESMO holdout persistido na Parte 02.
+ B2 usa p(destino) de B e sobrevivências de A, alinhadas por destino.
+ Não treina, não seleciona lambdas/limites e não executa Multi-step.
+ Não altera V2.2, V2.3 anteriores nem a tabela de negócio.
+
+ B2 é uma recombinação de parâmetros, NÃO um ajuste restrito otimizado.
+ Onde B já reutiliza A, B2 também reutiliza A sem nenhuma alteração.
+ Idade é o tempo JÁ transcorrido, não uma janela futura em dias.
 
 # COMMAND ----------
 
@@ -65,12 +65,12 @@ C02_CACHES = []
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## 1. Núcleo numérico e alinhamento
-# MAGIC Conserva p_B, pi_B e r_B. Só troca mu/sigma por A.
-# MAGIC O alinhamento compara a partição de DESTINOS, nunca assume que o índice
-# MAGIC do grupo seja igual nos dois JSONs. Partições incompatíveis interrompem.
-# MAGIC A/B usam a mesma fórmula da Parte 02, incluindo o desempate estável.
+ %md
+ ## 1. Núcleo numérico e alinhamento
+ Conserva p_B, pi_B e r_B. Só troca mu/sigma por A.
+ O alinhamento compara a partição de DESTINOS, nunca assume que o índice
+ do grupo seja igual nos dois JSONs. Partições incompatíveis interrompem.
+ A/B usam a mesma fórmula da Parte 02, incluindo o desempate estável.
 
 # COMMAND ----------
 
@@ -291,11 +291,11 @@ if C02_CFG["autotestes"]:
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## 2. Fontes fixadas e contrato do ajuste
-# MAGIC Lê manifesto, modelos e validação; não relê eventos nem reconstrói memória.
-# MAGIC A seleção de casos/rotas é a persistida em A/B. A referência de auditoria
-# MAGIC não é usada para selecionar clientes, excluir erros ou calibrar parâmetros.
+ %md
+ ## 2. Fontes fixadas e contrato do ajuste
+ Lê manifesto, modelos e validação; não relê eventos nem reconstrói memória.
+ A seleção de casos/rotas é a persistida em A/B. A referência de auditoria
+ não é usada para selecionar clientes, excluir erros ou calibrar parâmetros.
 
 # COMMAND ----------
 
@@ -451,11 +451,11 @@ print("Nenhum modelo será retreinado. Piso de log loss preservado:", C02_PISO)
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## 3. Catálogo B2 e distribuições por modelo/idade
-# MAGIC Somente o catálogo pequeno vai ao driver. Casos de validação ficam no Spark.
-# MAGIC Limites temporais de A continuam sinalizados; não são removidos.
-# MAGIC Sem modelo na validação original continua sem modelo nesta comparação.
+ %md
+ ## 3. Catálogo B2 e distribuições por modelo/idade
+ Somente o catálogo pequeno vai ao driver. Casos de validação ficam no Spark.
+ Limites temporais de A continuam sinalizados; não são removidos.
+ Sem modelo na validação original continua sem modelo nesta comparação.
 
 # COMMAND ----------
 
@@ -548,11 +548,11 @@ c02_kernels = spark.createDataFrame(c02_kernels_rows, C02_KERNEL_SCHEMA)
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## 4. Reavaliar A/B e B2 sem mudar casos, rotas ou cobertura
-# MAGIC A validação contém exatas e censuras. Censura recebe previsão, mas NÃO
-# MAGIC um rótulo de destino; só as exatas entram nas métricas de classificação.
-# MAGIC Destino desconhecido: p=0 e log loss no mesmo piso de antes.
+ %md
+ ## 4. Reavaliar A/B e B2 sem mudar casos, rotas ou cobertura
+ A validação contém exatas e censuras. Censura recebe previsão, mas NÃO
+ um rótulo de destino; só as exatas entram nas métricas de classificação.
+ Destino desconhecido: p=0 e log loss no mesmo piso de antes.
 
 # COMMAND ----------
 
@@ -704,13 +704,13 @@ c02_mostrar("V23_02C_01_INTEGRIDADE", c02_checks)
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## 5. Métricas e comparação pareada
-# MAGIC Sem previsões: ficam na cobertura, não nas médias de qualidade.
-# MAGIC Sem suporte ao destino: penalização mantida, sem exclusão das métricas.
-# MAGIC Brier/log loss menores são melhores; Top 1/5 maiores são melhores.
-# MAGIC Ganho positivo nos pares = melhora. ICs não são corrigidos por múltiplas
-# MAGIC comparações e descrevem este holdout de DESENVOLVIMENTO já examinado.
+ %md
+ ## 5. Métricas e comparação pareada
+ Sem previsões: ficam na cobertura, não nas médias de qualidade.
+ Sem suporte ao destino: penalização mantida, sem exclusão das métricas.
+ Brier/log loss menores são melhores; Top 1/5 maiores são melhores.
+ Ganho positivo nos pares = melhora. ICs não são corrigidos por múltiplas
+ comparações e descrevem este holdout de DESENVOLVIMENTO já examinado.
 
 # COMMAND ----------
 
@@ -768,11 +768,11 @@ for comp in ("B_VS_A", "B2_VS_A", "B2_VS_B"):
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## 6. Probabilidades extremas e casos críticos
-# MAGIC Mesma triagem para todas as variantes. Não aumenta o piso da métrica.
-# MAGIC Os casos críticos são escolhidos pela piora ORIGINAL B−A, não pelo
-# MAGIC resultado de B2. Servem à investigação; a comparação global usa todos.
+ %md
+ ## 6. Probabilidades extremas e casos críticos
+ Mesma triagem para todas as variantes. Não aumenta o piso da métrica.
+ Os casos críticos são escolhidos pela piora ORIGINAL B−A, não pelo
+ resultado de B2. Servem à investigação; a comparação global usa todos.
 
 # COMMAND ----------
 
@@ -815,11 +815,11 @@ C02_RELATORIOS["V23_02C_06_CASOS_CRITICOS_COMPLETOS"] = c02_criticos
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## 7. Persistência isolada e conclusão
-# MAGIC Novas tabelas 02C, append por id_02c; sem promoção automática.
-# MAGIC As escritas são separadas. Consuma somente IDs com manifesto concluído.
-# MAGIC Falha/reexecução: executar o notebook inteiro cria outro id_02c.
+ %md
+ ## 7. Persistência isolada e conclusão
+ Novas tabelas 02C, append por id_02c; sem promoção automática.
+ As escritas são separadas. Consuma somente IDs com manifesto concluído.
+ Falha/reexecução: executar o notebook inteiro cria outro id_02c.
 
 # COMMAND ----------
 
