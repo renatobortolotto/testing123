@@ -1,59 +1,63 @@
-from pyspark.sql import functions as F
+CONFIANCA = 0.85  # Use 0.95, 0.85 ou 0.80.
+ALFA = 1.0 - CONFIANCA
 
-TABELA_ORIGEM = (
-    "ctg_dsti.renato_nba."
-    "nba_semimarkov_v222_macroaware_long_hml"
-)
+for teste in ("fisher", "z"):
+    p_valores = resultado[f"p_valor_{teste}"]
 
-TABELA_NEGOCIO = (
-    "ctg_dsti.renato_nba."
-    "nba_semimarkov_v222_negocio_hml"
-)
-
-schema_raw = (
-    "array<struct<ranking:int,"
-    "estado:string,probabilidade:double>>"
-)
-
-base_negocio = (
-    spark.table(TABELA_ORIGEM)
-    .filter(
-        F.col("ranking_actionable").between(1, 5)
-        & F.col("actionable_acao").isNotNull()
+    resultado[f"significativo_{teste}"] = (
+        p_valores.lt(ALFA)
+        .astype("boolean")
+        .mask(p_valores.isna())
     )
-    .withColumn(
-        "_raw_array",
-        F.from_json("raw_top5_json", schema_raw),
+
+    from statsmodels.stats.proportion import confint_proportions_2indep
+
+
+def calcular_ic_diferenca(linha: pd.Series, alfa: float) -> pd.Series:
+    """Calcula o IC de teste menos controle, em pontos percentuais."""
+    saida = {
+        "ic_inferior_pp": np.nan,
+        "ic_superior_pp": np.nan,
+    }
+
+    n_teste = int(linha["total_teste"])
+    n_controle = int(linha["total_controle"])
+    x_teste = int(linha["aprovados_teste"])
+    x_controle = int(linha["aprovados_controle"])
+
+    if n_teste <= 0 or n_controle <= 0:
+        return pd.Series(saida)
+
+    if not (
+        0 <= x_teste <= n_teste
+        and 0 <= x_controle <= n_controle
+    ):
+        raise ValueError(
+            "Aprovados devem estar entre zero e o total do grupo."
+        )
+
+    inferior, superior = confint_proportions_2indep(
+        count1=x_teste,
+        nobs1=n_teste,
+        count2=x_controle,
+        nobs2=n_controle,
+        method="newcomb",
+        compare="diff",
+        alpha=alfa,
     )
-    .withColumn(
-        "_raw_rank",
-        F.element_at(
-            F.col("_raw_array"),
-            F.col("ranking_actionable").cast("int"),
-        ),
-    )
-    .select(
-        F.to_date("ts_corte_eventos").alias("data_referencia"),
-        "cd_bv",
-        F.col("macro_atual").alias("acao_atual"),
-        F.col("ranking_actionable").cast("int").alias("ranking"),
-        F.col("_raw_rank.estado").alias("proxima_acao_raw"),
-        F.col("_raw_rank.probabilidade").alias("score_raw"),
-        F.col("actionable_acao").alias("proxima_acao_util"),
-        F.col("actionable_score").alias("score_util"),
-    )
+
+    saida["ic_inferior_pp"] = 100 * inferior
+    saida["ic_superior_pp"] = 100 * superior
+
+    return pd.Series(saida)
+
+
+colunas_ic = ["ic_inferior_pp", "ic_superior_pp"]
+
+resultado[colunas_ic] = resultado.apply(
+    calcular_ic_diferenca,
+    axis=1,
+    alfa=ALFA,
 )
 
-(
-    base_negocio.write
-    .format("delta")
-    .mode("overwrite")
-    .option("overwriteSchema", "true")
-    .saveAsTable(TABELA_NEGOCIO)
-)
-
-display(
-    spark.table(TABELA_NEGOCIO)
-    .orderBy("cd_bv", "ranking")
-    .limit(20)
-)
+resultado["nivel_confianca_ic"] = CONFIANCA
