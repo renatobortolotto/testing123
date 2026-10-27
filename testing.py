@@ -1,11 +1,17 @@
-def validar_contrato():
-    """Monta o contrato e executa a validação pelo Kraken."""
-    global CONTRACT
+import sys
+import unittest
 
-    from kraken.contract import DeployContract
+nomes_testes = list(CONTRACT["test_dataprep"])
 
-    bundle = carregar_bundle()
-    CONTRACT = montar_contrato(bundle)
+suite_diagnostico = unittest.TestSuite([
+    unittest.FunctionTestCase(
+        globals()[nome],
+        description=nome,
+    )
+    for nome in nomes_testes
+])
 
-    dc = DeployContract(globals())
-    return dc.create(CONTRACT)
+resultado_testes = unittest.TextTestRunner(
+    stream=sys.stdout,
+    verbosity=2,
+).run(suite_diagnostico)
