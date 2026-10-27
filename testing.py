@@ -1,17 +1,22 @@
-import sys
-import unittest
+safra_teste = "20261026"
+inicio_teste, fim_teste = calcular_janela(safra_teste)
 
-nomes_testes = list(CONTRACT["test_dataprep"])
+query_teste = montar_query_features(
+    safra_teste,
+    list(FEATURE_DESCRIPTIONS),
+)
 
-suite_diagnostico = unittest.TestSuite([
-    unittest.FunctionTestCase(
-        globals()[nome],
-        description=nome,
-    )
-    for nome in nomes_testes
-])
+print("Início:", inicio_teste)
+print("Fim:", fim_teste)
 
-resultado_testes = unittest.TextTestRunner(
-    stream=sys.stdout,
-    verbosity=2,
-).run(suite_diagnostico)
+termos = (
+    "entrada_referencia",
+    "2026-10",
+    "__inicio__",
+    "__fim__",
+    "current_date",
+)
+
+for linha in query_teste.splitlines():
+    if any(termo in linha.lower() for termo in termos):
+        print(repr(linha))
