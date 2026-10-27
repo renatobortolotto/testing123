@@ -1,9 +1,11 @@
-print("Run atual:", CONTRACT["mlflow"][0]["run_id"])
+def validar_contrato():
+    """Monta o contrato e executa a validação pelo Kraken."""
+    global CONTRACT
 
-run_candidata = "eca97cbaffae49cea3458a6ec4856692"
+    from kraken.contract import DeployContract
 
-bundle_teste = _carregar_bundle_run(run_candidata)
+    bundle = carregar_bundle()
+    CONTRACT = montar_contrato(bundle)
 
-print("Bundle carregado da run:", run_candidata)
-print("Features:", len(bundle_teste["feature_cols"]))
-print("GHs:", len(bundle_teste["splits"]) + 1)
+    dc = DeployContract(globals())
+    return dc.create(CONTRACT)
