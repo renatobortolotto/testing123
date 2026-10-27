@@ -1,59 +1,44 @@
-from datetime import datetime, timezone
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-from pyspark.sql import functions as F
+# Utiliza exclusivamente o conjunto original de treinamento.
+df_treino = df_treino_sem_oot
 
+# Confirma o recorte antes de criar a referência.
+assert df_treino.count() == 411_704
 
-COLUNA_DATA = "data_ultimo_egv_alvo"
+bundle = carregar_bundle()
+features = list(bundle["feature_cols"])
 
-# Corte da execução original: OOT começa em 04/12/2025.
-INICIO_OOT = datetime(2025, 12, 4, tzinfo=timezone.utc)
-
-# Mesma limpeza básica mostrada no notebook de treinamento.
-base_valida = df_treino_original.filter(
-    F.col(COLUNA_DATA).isNotNull()
-    & F.col("target").isNotNull()
+# Mantém o target observado e utiliza o modelo já treinado.
+saida = escorar_dataframe(
+    df=df_treino.toPandas(),
+    bundle=bundle,
+    safra=get_safra(),
+    model_grc=CONTRACT["model_grc"],
+    treino=True,
 )
 
-df_treino_sem_oot = base_valida.filter(
-    F.col(COLUNA_DATA) < F.lit(INICIO_OOT)
+df_referencia = para_spark_big(saida, features)
+
+# Define um novo destino sem substituir referências anteriores.
+timestamp = datetime.now(
+    ZoneInfo("America/Sao_Paulo")
+).strftime("%Y%m%d_%H%M%S")
+
+caminho_referencia = (
+    "/Volumes/kraken_dasc/users/train_data/"
+    f"propensao_egv_treino_{timestamp}"
 )
 
-df_oot_conferencia = base_valida.filter(
-    F.col(COLUNA_DATA) >= F.lit(INICIO_OOT)
+df_referencia.write.mode("errorifexists").parquet(
+    caminho_referencia
 )
 
-resumo = (
-    base_valida
-    .withColumn(
-        "conjunto",
-        F.when(
-            F.col(COLUNA_DATA) < F.lit(INICIO_OOT),
-            F.lit("TREINO"),
-        ).otherwise(F.lit("OOT")),
-    )
-    .groupBy("conjunto")
-    .agg(
-        F.count("*").alias("linhas"),
-        F.min(COLUNA_DATA).alias("min_data"),
-        F.max(COLUNA_DATA).alias("max_data"),
-        F.avg(F.col("target").cast("double")).alias("taxa_positivos"),
-    )
-)
+# Confirma a persistência.
+df_conferencia = spark.read.parquet(caminho_referencia)
 
-display(resumo)
+assert df_conferencia.count() == 411_704
 
-contagens = {
-    linha["conjunto"]: linha["linhas"]
-    for linha in resumo.collect()
-}
-
-esperado = {"TREINO": 411_704, "OOT": 102_742}
-
-if contagens != esperado:
-    raise ValueError(
-        "A origem não reproduziu as contagens da execução original. "
-        f"Esperado: {esperado}. Encontrado: {contagens}. "
-        "Não prepare a referência antes de verificar essa diferença."
-    )
-
-print("Recorte conferido: 411.704 registros de treino, sem OOT.")
+print("Referência criada:", caminho_referencia)
+df_conferencia.printSchema()
