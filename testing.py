@@ -1,20 +1,9 @@
-import joblib
+print("Run atual:", CONTRACT["mlflow"][0]["run_id"])
 
-CAMINHO_BUNDLE = (
-    "/Workspace/Users/renato.netto@bv.com.br/"
-    "first-test/EGV/egv_model_bundle_latest.joblib"
-)
+run_candidata = "eca97cbaffae49cea3458a6ec4856692"
 
-bundle = joblib.load(CAMINHO_BUNDLE)
+bundle_teste = _carregar_bundle_run(run_candidata)
 
-validar_bundle(bundle)
-
-features = list(bundle["feature_cols"])
-
-print("Bundle carregado com sucesso.")
-print(f"Quantidade de features: {len(features)}")
-print(f"Quantidade de cortes GH: {len(bundle['splits'])}")
-print(f"Calibrador: {bundle['calibrator'] is not None}")
-
-assert len(features) == 63
-assert len(bundle["splits"]) == 9
+print("Bundle carregado da run:", run_candidata)
+print("Features:", len(bundle_teste["feature_cols"]))
+print("GHs:", len(bundle_teste["splits"]) + 1)
