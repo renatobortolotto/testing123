@@ -1,24 +1,25 @@
-import inspect
+from pathlib import Path
 
-from kraken.contract.validations.pipeline import gcp_validator
+import kraken
 
-linhas = inspect.getsource(gcp_validator).splitlines()
-termos = (
-    "campos_dvry",
-    "campos_big",
-    "_kraken",
-    "saveAsTable",
-)
+raiz = Path(kraken.__file__).resolve().parent
+total = 0
 
-encontrados = [
-    indice
-    for indice, linha in enumerate(linhas)
-    if any(termo in linha for termo in termos)
-]
+for arquivo in sorted(raiz.rglob("*.py")):
+    linhas = arquivo.read_text(
+        encoding="utf-8",
+        errors="replace",
+    ).splitlines()
 
-for indice in encontrados:
-    print(f"\nTrecho próximo à linha {indice + 1}:")
-    print("\n".join(linhas[max(0, indice - 8):indice + 12]))
+    for indice, linha in enumerate(linhas):
+        if "campos_dvry" not in linha:
+            continue
 
-if not encontrados:
-    print("Referências não encontradas neste módulo.")
+        total += 1
+        print(f"\nArquivo: {arquivo.relative_to(raiz)}")
+        print(f"Linha: {indice + 1}")
+        inicio = max(0, indice - 8)
+        fim = min(len(linhas), indice + 20)
+        print("\n".join(linhas[inicio:fim]))
+
+print(f"\nTotal de referências: {total}")
