@@ -1,0 +1,14 @@
+{
+  "nba_engine.py": [
+    "nba_v23_estavel/nba_v23_retomada_estavel.py",
+    "nba_v23_operacional/nba_v23_operacional_b2.py"
+  ],
+  "nba_fit.py": [
+    "nba_v23/nba_v23_02_treino_validacao_pareada.py",
+    "nba_v23/nba_v23_02c_memoria_tempo_compartilhado.py"
+  ],
+  "nba_data.py": [
+    "nba_v23_operacional/nba_v23_operacional_b2.py",
+    "nba_v23_estavel/nba_v23_retomada_estavel.py"
+  ]
+}

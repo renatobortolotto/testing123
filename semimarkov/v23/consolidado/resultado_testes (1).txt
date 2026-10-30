@@ -1,0 +1,34 @@
+test_19_sintaxe_e_embutidos (__main__.ArtifactTests.test_19_sintaxe_e_embutidos) ... ok
+test_20_notebooks_validos (__main__.ArtifactTests.test_20_notebooks_validos) ... ok
+test_21_sem_congelados_ou_ids_antigos_obrigatorios (__main__.ArtifactTests.test_21_sem_congelados_ou_ids_antigos_obrigatorios) ... ok
+test_22_selecao_explicita_modelo (__main__.ArtifactTests.test_22_selecao_explicita_modelo) ... ok
+test_23_wrapper_com_artefatos_simulados (__main__.ArtifactTests.test_23_wrapper_com_artefatos_simulados) ... ok
+test_24_nucleo_AST_igual_ao_anterior (__main__.ArtifactTests.test_24_nucleo_AST_igual_ao_anterior) ... ok
+test_25_wrapper_treino_serializavel (__main__.ArtifactTests.test_25_wrapper_treino_serializavel) ... ok
+test_26_guardas_producao (__main__.ArtifactTests.test_26_guardas_producao) ... ok
+test_27_config_preserva_alvos_parametros (__main__.ArtifactTests.test_27_config_preserva_alvos_parametros) ... ok
+test_01_autotestes_referencia (__main__.NucleoTest.test_01_autotestes_referencia) ... ok
+test_02_massa_17_alvos (__main__.NucleoTest.test_02_massa_17_alvos) ... ok
+test_03_compilacao_17_alvos (__main__.NucleoTest.test_03_compilacao_17_alvos) ... ok
+test_04_b2_preserva_destinos (__main__.NucleoTest.test_04_b2_preserva_destinos) ... ok
+test_05_idade_zero_b_igual_b2 (__main__.NucleoTest.test_05_idade_zero_b_igual_b2) ... ok
+test_06_batch_ordem_misturada (__main__.NucleoTest.test_06_batch_ordem_misturada) ... ok
+test_07_top5_17_alvos (__main__.NucleoTest.test_07_top5_17_alvos) ... ok
+test_08_roundtrip_json_npz (__main__.NucleoTest.test_08_roundtrip_json_npz) ... ok
+test_09_desconhecido_nao_inventa (__main__.NucleoTest.test_09_desconhecido_nao_inventa) ... ok
+test_10_memoria_incompativel_bloqueia (__main__.NucleoTest.test_10_memoria_incompativel_bloqueia) ... ok
+test_11_idade_invalida_bloqueia (__main__.NucleoTest.test_11_idade_invalida_bloqueia) ... ok
+test_12_nao_fecha_top5_em_um (__main__.NucleoTest.test_12_nao_fecha_top5_em_um) ... ok
+test_13_gradiente_com_censura (__main__.NucleoTest.test_13_gradiente_com_censura) ... ok
+test_14_ajuste_real (__main__.NucleoTest.test_14_ajuste_real) ... ok
+test_15_contexto_e_b2 (__main__.NucleoTest.test_15_contexto_e_b2) ... ok
+test_16_suporte_sem_alteracao_silenciosa (__main__.NucleoTest.test_16_suporte_sem_alteracao_silenciosa) ... ok
+test_17_predict_vazio (__main__.NucleoTest.test_17_predict_vazio) ... ok
+test_18_pandas_indice_nao_contiguo (__main__.NucleoTest.test_18_pandas_indice_nao_contiguo) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 1.429s
+
+OK
+03: autotestes numéricos de memória, ciclos, reentrada, relógio e massa OK.
+Operacional: coeficientes em lotes reproduzem o motor de referência.
