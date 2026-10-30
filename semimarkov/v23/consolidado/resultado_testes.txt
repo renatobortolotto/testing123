@@ -1,0 +1,26 @@
+test_approved_list_and_default_mode (__main__.ConsolidadaTests.test_approved_list_and_default_mode) ... ok
+test_composition_all_functions_unchanged (__main__.ConsolidadaTests.test_composition_all_functions_unchanged) ... ok
+test_composition_b2 (__main__.ConsolidadaTests.test_composition_b2) ... ok
+test_default_model_id_and_output_isolation (__main__.ConsolidadaTests.test_default_model_id_and_output_isolation) ... ok
+test_fit_all_functions_unchanged (__main__.ConsolidadaTests.test_fit_all_functions_unchanged) ... ok
+test_fit_functions_guarded (__main__.ConsolidadaTests.test_fit_functions_guarded) ... ok
+test_fixed_reader_integrated (__main__.ConsolidadaTests.test_fixed_reader_integrated) ... ok
+test_kernel_hist_unchanged (__main__.ConsolidadaTests.test_kernel_hist_unchanged) ... ok
+test_no_hidden_notebook_dependency (__main__.ConsolidadaTests.test_no_hidden_notebook_dependency) ... ok
+test_no_training_in_prediction (__main__.ConsolidadaTests.test_no_training_in_prediction) ... ok
+test_notebooks_valid (__main__.ConsolidadaTests.test_notebooks_valid) ... ok
+test_numeric_fit (__main__.ConsolidadaTests.test_numeric_fit) ... ok
+test_numeric_ms (__main__.ConsolidadaTests.test_numeric_ms) ... ok
+test_operational_kernel_unchanged (__main__.ConsolidadaTests.test_operational_kernel_unchanged) ... ok
+test_reference_gate_before_manifest (__main__.ConsolidadaTests.test_reference_gate_before_manifest) ... ok
+test_seventeen_actions_batch (__main__.ConsolidadaTests.test_seventeen_actions_batch) ... ok
+test_syntax_both (__main__.ConsolidadaTests.test_syntax_both) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 1.129s
+
+OK
+02C: autotestes numéricos, alinhamento e identidade em idade zero OK.
+V2.3 Parte 02 — gradiente, censura, massa e roteamento: OK.
+03: autotestes numéricos de memória, ciclos, reentrada, relógio e massa OK.
+Operacional: coeficientes em lotes reproduzem o motor de referência.

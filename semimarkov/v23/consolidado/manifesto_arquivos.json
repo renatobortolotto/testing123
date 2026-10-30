@@ -1,0 +1,73 @@
+{
+  "gerado_em_utc": "2026-10-23T18:00:25.607268+00:00",
+  "referencia_historica": "92a92d57-ce93-487c-bdf1-369e3dbd542f",
+  "alvos": [
+    "debito_automatico",
+    "emprestimos_pessoal_cartao",
+    "opf_iniciador_pagamentos",
+    "opf_recepcao_dados",
+    "pagamentos_boleto",
+    "pix_cadastro_chave",
+    "pix_excluir_chave",
+    "pix_trazer_chave",
+    "portabilidade_salario",
+    "tag_veicular_alterar_placa",
+    "tag_veicular_ativar",
+    "tag_veicular_bloquear",
+    "tag_veicular_cancelar",
+    "tag_veicular_contestacao",
+    "tag_veicular_desbloquear",
+    "tag_veicular_segunda_via",
+    "tag_veicular_solicitar"
+  ],
+  "fontes_locais": {
+    "fit": {
+      "arquivo": "/mnt/data/nba_v23/nba_v23_02_treino_validacao_pareada.py",
+      "sha256": "6eee8c4bdf25d8c0611d62da19ece3ec85c29b810f97e2b9c3b9f62c0aaa5b0a"
+    },
+    "b2": {
+      "arquivo": "/mnt/data/nba_v23/nba_v23_02c_memoria_tempo_compartilhado.py",
+      "sha256": "b158e9b33c9e6a51f487567d7e868101cb6c6158cd6a44b5a3192a1983f3eecb"
+    },
+    "hist": {
+      "arquivo": "/mnt/data/nba_v23_estavel/nba_v23_retomada_estavel.py",
+      "sha256": "8a7291ce052fe6c8343bc600cffa38d85e1d7724cdfde92131f512b0e38771d6"
+    },
+    "op": {
+      "arquivo": "/mnt/data/nba_v23_operacional/nba_v23_operacional_b2.py",
+      "sha256": "8eb191d312ae9ca5b86cb082b41835a4f087de4378abb78f82cdddb3254586e2"
+    },
+    "fix": {
+      "arquivo": "/mnt/data/nba_v23_operacional_correcao/substituir_secao2_leitura_operacional.py",
+      "sha256": "a4f3ccf1d3f0c2fb97b07cc58e0e08ed6356e9f80971111ebf6f7fa39820f552"
+    }
+  },
+  "arquivos": {
+    "LEIA_ME.md": {
+      "bytes": 6644,
+      "sha256": "eb7c8d6a75c3e0bdcb3c5ecc25698e5f9f395de2d76109725a46475d332a095d"
+    },
+    "02_nba_v23_predicao.ipynb": {
+      "bytes": 94723,
+      "sha256": "62fb9f4539f5f8f9bf71e1772d61668d34f92d8449c4554ef8a8eb978635c191"
+    },
+    "01_nba_v23_treinamento_validacao.py": {
+      "bytes": 193498,
+      "sha256": "046cd0726f1e21176934edd19890d2297a67afddb01b7a359e1b79a6926fb862"
+    },
+    "resultado_testes.txt": {
+      "bytes": 1960,
+      "sha256": "dfe7178f73ff46a19be5938ea9ff8daf67bb9aeadff4e18c5c95e50d2c95d8aa"
+    },
+    "01_nba_v23_treinamento_validacao.ipynb": {
+      "bytes": 237032,
+      "sha256": "dcbafba350be6c4656aad9c2c709979f0aee35da76c753e81fa3dd4cb4d21678"
+    },
+    "02_nba_v23_predicao.py": {
+      "bytes": 76793,
+      "sha256": "cf66ce95509fec8a4f793e687015744eacf7fddac76c0e6f27a57aaae3301093"
+    }
+  },
+  "validacao_spark_delta": "NAO_EXECUTADA_NESTE_AMBIENTE",
+  "observacao": "Os arquivos consolidados apontados anteriormente não estavam presentes. Esta entrega foi reconstruída dos arquivos-fonte disponíveis; não é uma recuperação byte a byte dos links anteriores."
+}
