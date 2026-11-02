@@ -1,11 +1,18 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 02 — NBA V2.3 | Predição a partir do MLflow
-# MAGIC Independente do notebook 01 e das variáveis de sua sessão. **Não treina.**
-# MAGIC Escolha explicitamente a URI/run aprovada. Sem configuração, apenas lista execuções disponíveis; não escolhe a mais recente automaticamente.
-# MAGIC A preparação de estado/memória é carregada do pacote, junto com catálogo, parâmetros e coeficientes B2.
-# MAGIC Fonte de público é apenas elegibilidade geral; não aplica elegibilidade de produtos nem regras de comunicação.
-# MAGIC Requer o mesmo ambiente Python do treinamento nos executores (`env_manager="local"`), Spark >=3.5 e MLflow >=2.12.2.
+# MAGIC # 02 — NBA V2.3 | Predição pelo modelo MLflow selecionado
+# MAGIC
+# MAGIC **Notebook corrigido, independente do treinamento.** Não cria/importa módulos
+# MAGIC Python locais, não executa código armazenado em strings e não treina.
+# MAGIC
+# MAGIC Selecione a URI/run da entrega corrigida. As funções de preparação são
+# MAGIC recuperadas do modelo registrado, para manter a mesma definição do treino.
+# MAGIC O nome do `.py` distribuído é apenas um formato de importação de notebook.
+# MAGIC
+# MAGIC Spark >= 3.5 e MLflow >= 2.12.2. Use ambiente Python/dependências compatível
+# MAGIC com o treinamento, inclusive CloudPickle; os testes são feitos antes do scoring
+# MAGIC pesado. Carregue somente modelos de origem confiável. Não aplica elegibilidade
+# MAGIC por produto nem regras comerciais.
 
 # COMMAND ----------
 
@@ -18,6 +25,7 @@ import json
 import math
 import uuid
 from datetime import datetime, timezone
+import cloudpickle
 import mlflow
 import numpy as np
 import pandas as pd
@@ -129,7 +137,7 @@ if 'spark' not in globals():
 if Version(spark.version.split('-')[0]) < Version('3.5.0'):
     raise RuntimeError('Requer Spark >= 3.5.')
 if Version(mlflow.__version__) < Version('2.12.2'):
-    raise RuntimeError('Requer MLflow >= 2.12.2 para carregar o modelo por código.')
+    raise RuntimeError('O contrato deste pacote requer MLflow >= 2.12.2.')
 mlflow.set_tracking_uri(CFG['tracking_uri'])
 if CFG['model_uri'] and CFG['run_id_treinamento']:
     raise ValueError('Preencha model_uri OU run_id_treinamento, não os dois.')
@@ -173,6 +181,8 @@ if CFG['autotestes']:
     model_api.teste_preparo(spark)
 print('Modelo:', MODEL_URI)
 print('Run de treinamento:', RUN_MODELO)
+print('Empacotamento:', CONTRATO.get('formato_empacotamento', 'ANTERIOR'))
+print('CloudPickle do ambiente:', cloudpickle.__version__)
 print('Ações úteis:', CONTRATO['alvos'])
 print('Run de scoring:', SCORE_ID, '| modo:', CFG['modo_scoring'])
 

@@ -1,0 +1,22 @@
+{
+  "revisao": "v23_b2_eventos_mlflow_1.0.1_notebook",
+  "base_da_correcao": "NBA_V23_Treino_Predicao_MLflow.zip",
+  "sha256_base": "79121f1850ded22984520c186d94e367477acda38e032cb26784ee0bdd82769d",
+  "mudanca": "Funções/classes em células; worker recebe funções; PythonModel instanciado no MLflow.",
+  "numerico_alterado": false,
+  "funcoes_classes_conferidas": 36,
+  "testes_locais": {
+    "executados": 31,
+    "aprovados": 31,
+    "spark_delta_mlflow_reais": false
+  },
+  "arquivos_sha256": {
+    "01_nba_v23_treinamento_mlflow.ipynb": "4bda6e2df5a1ffdd8b1e99ccd5cc43e9298a1f2cb4bbb2e2a27499e4fb87966b",
+    "01_nba_v23_treinamento_mlflow.py": "bfcc2c021d9bfbb7aefeb2c84435e5f927a8d9a0c71e0e8a4655c6a8c0182ae0",
+    "02_nba_v23_predicao_mlflow.ipynb": "274f2a1cbd189036c71be85aa919bd1ba7a4fcad30c6a375efeab3a2c0f08208",
+    "02_nba_v23_predicao_mlflow.py": "44370e76a833d7a294725d270e110ba9ec1d250e195d7fa02fd7fe95922c3c1d",
+    "LEIA_ME.md": "bd53c768902993b7134b911e86aeafb85f071eb064081f11ff32893d5b241bcb",
+    "resultado_testes.txt": "bc1e538db6c83dd03d38b0a9528201c2da5e774e6db3918f2cce1051aeb4c288",
+    "verificacao_preservacao.json": "41f58244fb545577ad380785d2284e0a14ff21f19d91d59716dc9e12794b0da1"
+  }
+}

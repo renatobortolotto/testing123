@@ -1,0 +1,146 @@
+{
+  "nba_engine.py:ms_hash": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:ms_validar_modelo": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:ms_prever_raw": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:MotorMacroMemoria": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:ms_autotestes_numericos": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:op_compilar_motor": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:op_probabilidades_lote": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:op_testar_compilacao": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:completar_payload": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:salvar_payload": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:carregar_payload": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:_sem_previsao": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_engine.py:prever_dataframe": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_fit.py:criar_estrutura": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_fit.py:validar_modelo": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_fit.py:preparar_objetivo": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_fit.py:ajustar_modelo": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_fit.py:prever_probabilidades": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_fit.py:c02_hash": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_fit.py:c02_validar_modelo": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_fit.py:c02_compor_modelo": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "nba_data.py:op_preparar_acoes": {
+    "ast_preservada": true,
+    "normalizacao": "imports/anotacoes"
+  },
+  "nba_data.py:ms03_rotular": {
+    "ast_preservada": true,
+    "normalizacao": "imports/anotacoes"
+  },
+  "nba_data.py:exigir_vazio": {
+    "ast_preservada": true,
+    "normalizacao": "imports/anotacoes"
+  },
+  "nba_data.py:validar_eventos": {
+    "ast_preservada": true,
+    "normalizacao": "imports/anotacoes"
+  },
+  "nba_data.py:construir_catalogo": {
+    "ast_preservada": true,
+    "normalizacao": "imports/anotacoes"
+  },
+  "nba_data.py:construir_transicoes": {
+    "ast_preservada": true,
+    "normalizacao": "imports/anotacoes"
+  },
+  "nba_data.py:preparar_estado_atual": {
+    "ast_preservada": true,
+    "normalizacao": "imports/anotacoes"
+  },
+  "nba_data.py:autoteste_preparo": {
+    "ast_preservada": true,
+    "normalizacao": "imports/anotacoes"
+  },
+  "notebook:metricas_avaliacao": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "notebook:resumir_avaliacao": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "notebook:resumo_por_acao": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "notebook:lift_acao": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "notebook:ler_delta_fixo": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "notebook:conferir_identidade": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  },
+  "notebook:salvar_etapa": {
+    "ast_preservada": true,
+    "normalizacao": "nenhuma"
+  }
+}

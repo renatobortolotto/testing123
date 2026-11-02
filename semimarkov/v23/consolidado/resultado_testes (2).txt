@@ -1,0 +1,53 @@
+RESULTADO DOS TESTES LOCAIS — NBA V2.3 MLflow corrigido
+31 testes executados; 31 aprovados.
+
+NÃO executadas APIs reais de Spark, Delta, PyArrow ou MLflow.
+Base PythonModel simulada somente para testar nossa interface.
+CloudPickle, NumPy, Pandas e SciPy reais; processo Python isolado real.
+
+Python: 3.13.5
+NumPy: 2.3.5
+Pandas: 2.2.3
+SciPy: 1.17.0
+CloudPickle: 3.1.2
+nbformat: 5.10.4
+
+test_01_sintaxe_python (__main__.RefactorTests.test_01_sintaxe_python) ... ok
+test_02_notebooks_validos_sem_outputs (__main__.RefactorTests.test_02_notebooks_validos_sem_outputs) ... ok
+test_03_codigo_nativo_sem_exec_compile_eval (__main__.RefactorTests.test_03_codigo_nativo_sem_exec_compile_eval) ... ok
+test_04_sem_modulos_locais_ou_code_paths (__main__.RefactorTests.test_04_sem_modulos_locais_ou_code_paths) ... ok
+test_05_log_model_recebe_instancia (__main__.RefactorTests.test_05_log_model_recebe_instancia) ... ok
+test_06_config_modelo_preservada (__main__.RefactorTests.test_06_config_modelo_preservada) ... ok
+test_07_36_funcoes_AST_conferidas (__main__.RefactorTests.test_07_36_funcoes_AST_conferidas) ... ok
+test_08_autoteste_numerico (__main__.RefactorTests.test_08_autoteste_numerico) ... ok
+test_09_massa_17_alvos_e_idades (__main__.RefactorTests.test_09_massa_17_alvos_e_idades) ... ok
+test_10_equivalencia_inferencia_numerica_com_anterior (__main__.RefactorTests.test_10_equivalencia_inferencia_numerica_com_anterior) ... ok
+test_11_equivalencia_lotes_com_anterior (__main__.RefactorTests.test_11_equivalencia_lotes_com_anterior) ... ok
+test_12_compilacao_numerica (__main__.RefactorTests.test_12_compilacao_numerica) ... ok
+test_13_b2_preserva_curvas_e_probabilidades (__main__.RefactorTests.test_13_b2_preserva_curvas_e_probabilidades) ... ok
+test_14_top5_nao_renormalizado (__main__.RefactorTests.test_14_top5_nao_renormalizado) ... ok
+test_15_json_npz_sem_pickle_numerico (__main__.RefactorTests.test_15_json_npz_sem_pickle_numerico) ... ok
+test_16_gradiente_com_censura (__main__.RefactorTests.test_16_gradiente_com_censura) ... ok
+test_17_ajuste_real_numerico_igual_ao_anterior (__main__.RefactorTests.test_17_ajuste_real_numerico_igual_ao_anterior) ... ok
+test_18_ajuste_contextual_igual (__main__.RefactorTests.test_18_ajuste_contextual_igual) ... ok
+test_19_worker_direto_serializa_e_ajusta (__main__.RefactorTests.test_19_worker_direto_serializa_e_ajusta) ... ok
+test_20_worker_contextual_sem_pai_falha_controlada (__main__.RefactorTests.test_20_worker_contextual_sem_pai_falha_controlada) ... ok
+test_21_worker_contextual_com_pai (__main__.RefactorTests.test_21_worker_contextual_com_pai) ... ok
+test_22_classe_serializada_nao_captura_spark (__main__.RefactorTests.test_22_classe_serializada_nao_captura_spark) ... ok
+test_23_interface_load_context_predict_sem_mlflow_real (__main__.RefactorTests.test_23_interface_load_context_predict_sem_mlflow_real) ... ok
+test_24_integridade_detecta_artefato_alterado (__main__.RefactorTests.test_24_integridade_detecta_artefato_alterado) ... ok
+test_25_classe_e_worker_em_processo_limpo (__main__.RefactorTests.test_25_classe_e_worker_em_processo_limpo) ... ok
+test_26_contrato_e_kernel_divergente_bloqueados (__main__.RefactorTests.test_26_contrato_e_kernel_divergente_bloqueados) ... ok
+test_27_entradas_invalidas_e_vazias (__main__.RefactorTests.test_27_entradas_invalidas_e_vazias) ... ok
+test_28_funcoes_preparo_serializadas_sem_sessao (__main__.RefactorTests.test_28_funcoes_preparo_serializadas_sem_sessao) ... ok
+test_29_checkpoints_delta_e_selecao_explicita_mantidos (__main__.RefactorTests.test_29_checkpoints_delta_e_selecao_explicita_mantidos) ... ok
+test_30_cloudpickle_version_pin (__main__.RefactorTests.test_30_cloudpickle_version_pin) ... ok
+test_31_python_jupyter_mesmas_celulas (__main__.RefactorTests.test_31_python_jupyter_mesmas_celulas) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 1.990s
+
+OK
+QA LOCAL: APIs MLflow/Spark/Delta NÃO executadas. Base MLflow simulada somente para interface.
+03: autotestes numéricos de memória, ciclos, reentrada, relógio e massa OK.
+Operacional: coeficientes em lotes reproduzem o motor de referência.
