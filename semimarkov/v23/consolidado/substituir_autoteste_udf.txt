@@ -1,0 +1,202 @@
+# Substitua o bloco if CFG['autotestes'] que vem LOGO DEPOIS de model_udf.
+# Não remova model_udf nem o autoteste model_api.teste_preparo(spark).
+# Esta correção altera somente a comparação; não altera modelo nem scores.
+
+import json
+import math
+from numbers import Integral, Real
+
+import numpy as np
+import pandas as pd
+
+
+PRED_00_ATOL = 1e-9  # Mesma tolerância absoluta já usada no notebook.
+PRED_00_JSON = {
+    "raw_top5_json": list,
+    "util_top5_json": list,
+    "raw_probs_json": dict,
+    "util_probs_json": dict,
+}
+PRED_00_MASSAS = {
+    "massa_acao_util", "massa_sem_modelo", "massa_terminal",
+    "massa_retencao_interna", "massa_limite_macro", "erro_massa",
+}
+
+
+def pred00_json(texto: str, coluna: str):
+    """Lê o JSON sem aceitar chaves duplicadas ou NaN/Infinity."""
+    def objeto_unico(pares):
+        resultado = {}
+        for chave, valor in pares:
+            if chave in resultado:
+                raise ValueError(f"Chave JSON duplicada: {chave!r}")
+            resultado[chave] = valor
+        return resultado
+
+    def constante_invalida(valor):
+        raise ValueError(f"Constante JSON não finita: {valor}")
+
+    if not isinstance(texto, str):
+        raise ValueError(f"{coluna}: esperado texto JSON, recebido {type(texto)}")
+    resultado = json.loads(
+        texto, object_pairs_hook=objeto_unico,
+        parse_constant=constante_invalida,
+    )
+    if not isinstance(resultado, PRED_00_JSON[coluna]):
+        raise ValueError(f"{coluna}: estrutura JSON incompatível.")
+    return resultado
+
+
+def pred00_comparar(
+    a, b, caminho: str, atol: float = PRED_00_ATOL, probabilidade: bool = False,
+) -> float:
+    """Exige estrutura/ranks exatos e compara números com tolerância absoluta.
+
+    Retorna a maior diferença numérica encontrada. Não modifica os valores.
+    A ordem das listas é preservada; a ordem das chaves dos mapas é irrelevante.
+    """
+    if not math.isfinite(atol) or atol < 0:
+        raise ValueError("Tolerância inválida.")
+    a = a.item() if isinstance(a, np.generic) else a
+    b = b.item() if isinstance(b, np.generic) else b
+
+    def falhar(motivo):
+        raise RuntimeError(
+            f"UDF distribuída divergiu em {caminho}: {motivo}. "
+            f"driver={a!r}; executor={b!r}"
+        )
+
+    if isinstance(a, dict) or isinstance(b, dict):
+        if not isinstance(a, dict) or not isinstance(b, dict):
+            falhar("tipos estruturais diferentes")
+        if set(a) != set(b):
+            falhar("chaves diferentes")
+        return max((
+            pred00_comparar(
+                a[chave], b[chave], f"{caminho}.{chave}", atol,
+                probabilidade or chave == "score",
+            )
+            for chave in sorted(a)
+        ), default=0.0)
+
+    if isinstance(a, list) or isinstance(b, list):
+        if not isinstance(a, list) or not isinstance(b, list) or len(a) != len(b):
+            falhar("tipo ou tamanho da lista diferente")
+        return max((
+            pred00_comparar(x, y, f"{caminho}[{i}]", atol, probabilidade)
+            for i, (x, y) in enumerate(zip(a, b))
+        ), default=0.0)
+
+    if a is None or b is None:
+        if probabilidade:
+            falhar("probabilidade ausente")
+        if a is not None or b is not None:
+            falhar("valor ausente somente de um lado")
+        return 0.0
+
+    if isinstance(a, bool) or isinstance(b, bool):
+        if type(a) is not bool or type(b) is not bool or a != b:
+            falhar("indicador booleano diferente")
+        return 0.0
+
+    if caminho.rsplit(".", 1)[-1] in {
+        "ranking", "passo_macro_maior_contribuicao",
+    }:
+        if not isinstance(a, Integral) or not isinstance(b, Integral) or a != b:
+            falhar("ranking/passo deve ser inteiro e exatamente igual")
+        return 0.0
+
+    if isinstance(a, Real) or isinstance(b, Real):
+        if not isinstance(a, Real) or not isinstance(b, Real):
+            falhar("valor numérico convertido em outro tipo")
+        if not math.isfinite(float(a)) or not math.isfinite(float(b)):
+            falhar("valor numérico não finito")
+        # Uma troca de zero por positivo não é ocultada pela tolerância.
+        if probabilidade and (
+            a < 0 or b < 0 or a > 1 + atol or b > 1 + atol
+            or (a == 0) != (b == 0)
+        ):
+            falhar("probabilidade inválida ou suporte zero/positivo diferente")
+        delta = abs(float(a) - float(b))
+        if delta > atol:
+            falhar(f"delta_abs={delta:.17g}; tolerancia_abs={atol:.17g}")
+        return delta
+
+    if type(a) is not type(b) or a != b:
+        falhar("valor categórico diferente")
+    return 0.0
+
+
+def pred00_validar_tabelas(esperado: pd.DataFrame, observado: list) -> pd.DataFrame:
+    """Alinha pelo ID do exemplo e valida todas as colunas do modelo."""
+    if esperado.empty or len(esperado) != len(observado):
+        raise RuntimeError("Autoteste vazio ou número de linhas divergente.")
+    if esperado.columns.duplicated().any():
+        raise RuntimeError("Colunas duplicadas na saída do driver.")
+    linhas = [
+        r.asDict(recursive=True) if hasattr(r, "asDict") else dict(r)
+        for r in observado
+    ]
+    colunas = set(esperado.columns)
+    if any(set(r) != colunas | {"ordem"} for r in linhas):
+        raise RuntimeError("Colunas de saída da UDF divergentes do driver.")
+    ordens = [r["ordem"] for r in linhas]
+    if (
+        any(isinstance(i, bool) or not isinstance(i, Integral) for i in ordens)
+        or len(set(ordens)) != len(ordens)
+        or set(ordens) != set(range(len(esperado)))
+    ):
+        raise RuntimeError("Exemplos faltantes, duplicados ou IDs inválidos na UDF.")
+    por_id = {r["ordem"]: r for r in linhas}
+    resumo = []
+    for i in range(len(esperado)):
+        for coluna in esperado.columns:
+            a, b = esperado.iloc[i][coluna], por_id[i][coluna]
+            if coluna in PRED_00_JSON:
+                a = pred00_json(a, coluna)
+                b = pred00_json(b, coluna)
+            elif coluna in PRED_00_MASSAS and not bool(
+                esperado.iloc[i]["tem_previsao"]
+            ):
+                # Pandas representa massas ausentes por NaN; Spark, por NULL.
+                a = None if pd.isna(a) else a
+                b = None if pd.isna(b) else b
+            delta = pred00_comparar(
+                a, b, f"exemplo[{i}].{coluna}",
+                probabilidade=coluna in {"raw_probs_json", "util_probs_json"},
+            )
+            resumo.append({
+                "ordem": i, "coluna": coluna, "max_delta_abs": delta,
+            })
+    return (
+        pd.DataFrame(resumo)
+        .groupby("coluna", as_index=False)["max_delta_abs"].max()
+        .sort_values("coluna").reset_index(drop=True)
+    )
+
+
+if CFG["autotestes"]:
+    exemplos = CONTRATO["exemplo_inferencia"]
+    exemplo_pd = pd.DataFrame(exemplos)[["estado", "memoria", "idade_seg"]]
+    esperado = loaded.predict(exemplo_pd)
+    pequeno = spark.createDataFrame(
+        [
+            (i, r["estado"], r["memoria"], float(r["idade_seg"]))
+            for i, r in enumerate(exemplos)
+        ],
+        "ordem int, estado string, memoria string, idade_seg double",
+    )
+    observado = (
+        pequeno.withColumn(
+            "_p", model_udf(F.struct("estado", "memoria", "idade_seg"))
+        )
+        .select("ordem", "_p.*").orderBy("ordem").collect()
+    )
+    # Na falha, esperado/observado/exemplo_pd permanecem disponíveis para inspeção.
+    PRED_00_COMPARACAO = pred00_validar_tabelas(esperado, observado)
+    print("PRED_00: diferenças máximas por coluna nos exemplos de teste:")
+    print(PRED_00_COMPARACAO.to_string(index=False))
+    print(
+        "PRED_00: driver e UDF equivalentes nos exemplos testados; "
+        "ações, ranks, passos e status exatos; números com atol=1e-9."
+    )
