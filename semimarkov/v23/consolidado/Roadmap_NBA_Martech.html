@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="description" content="Roadmap de negócio do NBA. Da priorização inicial e dos limites do primeiro modelo semi-Markov à V2.3 em teste com Open Finance e às próximas decisões.">
+<title>Roadmap de negócio · NBA Martech</title>
+<style>
+:root {
+  --navy: #002bab;
+  --blue: #1953d7;
+  --bright: #2280ec;
+  --sky: #8caee2;
+  --ink: #18243b;
+  --muted: #4b5c78;
+  --line: #d5e1f3;
+  --pale: #eff5ff;
+  font: min(1.11111vw, 1.88vh, 19px)/1.3 Arial, Helvetica, sans-serif;
+  font-size: min(1.11111vw, 1.88svh, 19px);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  background: #e8eef7;
+}
+main {
+  background: #fff;
+  width: min(100%, 90rem);
+  box-shadow: 0 .5rem 2.8rem #18243b0f;
+}
+h1, h2, h3, p, ol, dl, dt, dd { margin: 0; }
+.banner {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 1.25rem 2.85rem 1.65rem;
+  background: var(--navy);
+  color: white;
+}
+.masthead { display: flex; align-items: center; justify-content: space-between; }
+.brand, .date, .kicker {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+.brand b { color: var(--sky); padding: 0 .35rem; }
+.date { font-size: .72rem; }
+h1 {
+  margin-top: 1.12rem;
+  max-width: 75rem;
+  font-size: 2.8rem;
+  line-height: 1.07;
+  letter-spacing: -.046em;
+}
+.arc {
+  position: absolute; z-index: -1; bottom: -18.5rem; right: -2.75rem;
+  height: 24.5rem; width: 24.5rem; border: 1.4rem solid #1953d7;
+  border-radius: 50%; pointer-events: none;
+}
+.arc::after {
+  content: ""; position: absolute; inset: 1.15rem;
+  border: 1.35rem solid #2280ec; border-radius: 50%;
+}
+.columns {
+  display: grid;
+  grid-template-columns: 1.14fr 1fr;
+  column-gap: 2.5rem;
+  padding: 1.7rem 2.85rem 1.35rem;
+}
+.history, .outlook { min-width: 0; }
+.kicker { color: var(--blue); }
+.origin {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: .95rem; margin-bottom: 1rem;
+}
+.origin h3, .timeline h3, .plan h3 { font-size: 1.22rem; line-height: 1.16; letter-spacing: -.024em; }
+p.copy, .timeline p, .plan p { font-size: 1.05rem; line-height: 1.34; color: var(--muted); }
+.origin h3 { margin: .35rem 0 .24rem; }
+.timeline, .plan { list-style: none; padding: 0; }
+.timeline { margin: .75rem 0 0; }
+.timeline li { position: relative; padding: 0 0 .8rem 1.5rem; }
+.timeline li:last-child { padding-bottom: 0; }
+.timeline li::before {
+  content: ""; position: absolute; top: .42rem; left: .05rem;
+  width: .55rem; height: .55rem; border-radius: 100%;
+  border: 2px solid var(--blue); background: white; box-sizing: border-box; z-index: 1;
+}
+.timeline li:not(:last-child)::after {
+  content: ""; position: absolute; left: .29rem; top: .7rem; bottom: -.6rem;
+  width: 1px; background: var(--sky);
+}
+.timeline p { margin-top: .23rem; }
+.outlook { border-left: 1px solid var(--line); padding-left: 2.2rem; }
+.now {
+  background: var(--pale); border-left: .28rem solid var(--blue);
+  padding: .95rem 1.2rem 1rem;
+}
+.now h3 { font-size: 1.83rem; line-height: 1.1; letter-spacing: -.043em; color: var(--navy); margin: .4rem 0 .45rem; }
+.now p { font-size: 1.07rem; line-height: 1.4; }
+.next { margin-top: 1.22rem; }
+.plan { margin-top: .72rem; }
+.plan li { margin-bottom: .64rem; }
+.plan li:last-child { margin-bottom: 0; }
+.plan p { margin-top: .14rem; }
+.data {
+  display: grid;
+  grid-template-columns: 1.28fr .75fr .79fr .98fr;
+  align-items: center;
+  gap: 1rem;
+  padding: .95rem 2rem 1rem;
+  margin: 0 2.85rem 1.45rem;
+  background: var(--pale); border-top: 2px solid var(--sky);
+}
+.data .note { font-size: .85rem; color: var(--muted); margin-top: .3rem; line-height: 1.27; }
+.data dl { padding-left: 1.15rem; border-left: 1px solid var(--sky); display: flex; flex-direction: column-reverse; }
+.data dt { margin-top: .18rem; font-size: .9rem; color: var(--muted); line-height: 1.2; }
+.data dd { color: var(--ink); font-size: 1.86rem; line-height: .98; letter-spacing: -.045em; font-weight: 700; font-variant-numeric: tabular-nums; }
+.data dl:last-child dd { color: var(--navy); }
+.data small { margin-left: .22rem; font-weight: 700; font-size: .81rem; letter-spacing: -.015em; white-space: nowrap; }
+
+@media screen and (max-aspect-ratio: 11/10) {
+  :root { font-size: min(3.6vw, 1.75vh, 21px); font-size: min(3.6vw, 1.75svh, 21px); }
+  main { width: 100%; max-width: 39rem; }
+  .banner { padding: .9rem 1.1rem .92rem; }
+  .brand, .date, .kicker { font-size: .69rem; }
+  h1 { max-width: 30ch; font-size: 1.85rem; margin-top: .6rem; }
+  .arc { width: 10rem; height: 10rem; bottom: -8.2rem; right: -2rem; border-width: .6rem; }
+  .arc::after { inset: .4rem; border-width: .5rem; }
+  .columns { display: block; padding: .7rem 1.1rem .68rem; }
+  .origin { padding-bottom: .55rem; margin-bottom: .6rem; }
+  .origin h3, .timeline h3, .plan h3 { font-size: 1.04rem; }
+  p.copy, .timeline p, .plan p, .now p { font-size: .94rem; line-height: 1.23; }
+  .origin h3 { margin: .2rem 0 .12rem; }
+  .timeline { margin-top: .4rem; }
+  .timeline li { padding: 0 0 .42rem 1rem; }
+  .timeline li::before { width: .48rem; height: .48rem; top: .3rem; border-width: 1.5px; }
+  .timeline li:not(:last-child)::after { left: .25rem; top: .55rem; bottom: -.37rem; }
+  .timeline p, .plan p { margin-top: .08rem; }
+  .outlook { border: 0; padding: 0; margin-top: .55rem; }
+  .now { padding: .5rem .75rem; }
+  .now h3 { font-size: 1.23rem; margin: .16rem 0 .15rem; }
+  .next { margin-top: .6rem; }
+  .plan { margin-top: .35rem; }
+  .plan li { margin-bottom: .28rem; }
+  .plan h3, .plan p { display: inline; }
+  .data { margin: 0 1.1rem .8rem; padding: .5rem .6rem; grid-template-columns: 1fr 1fr 1.25fr; gap: .35rem; }
+  .data header { grid-column: 1 / -1; }
+  .data .note { font-size: .78rem; margin-top: .12rem; }
+  .data dl { padding-left: .32rem; }
+  .data dd { font-size: 1.21rem; }
+  .data dt { font-size: .73rem; }
+  .data small { font-size: .65rem; margin-left: 0; display: inline-block; }
+}
+@page { size: 15in 8.85in; margin: 0; }
+@media print {
+  :root { font-size: 10.6pt !important; }
+  html, body { width: 15in; height: 8.85in; min-height: 0; }
+  body { background: white; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  main { width: 100%; max-width: none; box-shadow: none; break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<main aria-labelledby="roadmap-title">
+  <header class="banner">
+    <div class="masthead">
+      <div class="brand">NBA <b aria-hidden="true">/</b> Martech</div>
+      <div class="date">Roadmap de negócio · <time datetime="2026-11">Novembro 2026</time></div>
+    </div>
+    <h1 id="roadmap-title">A evolução do NBA até o piloto de Open Finance</h1>
+    <div class="arc" aria-hidden="true"></div>
+  </header>
+
+  <div class="columns">
+    <div class="history">
+      <section class="origin" aria-labelledby="origin">
+        <h2 class="kicker" id="origin">De onde saímos</h2>
+        <h3>A priorização inicial e os limites do primeiro modelo</h3>
+        <p class="copy">Parte da escolha das ações era aleatória. Já existia também um modelo semi-Markov com regras complexas de censura para tratar jornadas observadas só em parte. Ele criava estados como “sem ação”, que agrupavam clientes com históricos diferentes e tornavam suas previsões parecidas.</p>
+      </section>
+
+      <section aria-labelledby="history">
+        <h2 class="kicker" id="history">Por onde passamos</h2>
+        <ol class="timeline">
+          <li>
+            <h3>V2.1 · O ranking revelou a concentração em login</h3>
+            <p>Após 30 minutos sem evento, quem fez um Pix e quem consultou um financiamento passavam a “sem ação”. Em uma execução, o modelo previu login como próximo passo para cerca de 2,59 milhões de clientes nesse estado.</p>
+          </li>
+          <li>
+            <h3>V2.2 · A última ação real voltou a distinguir as jornadas</h3>
+            <p>Retiramos o estado “sem ação”. O modelo passou a usar a última atividade real e o tempo desde ela. Quando o histórico terminava sem outro evento, a próxima ação ficava em aberto (censura à direita).</p>
+          </li>
+          <li>
+            <h3>A etapa anterior ao login entrou na previsão</h3>
+            <p>Na V2.3, o modelo lembra a jornada anterior ao login. Assim, quem vinha de Pix pode receber uma previsão diferente de quem vinha de boleto.</p>
+          </li>
+          <li>
+            <h3>Dos cliques às ações de negócio</h3>
+            <p>A V2.3 acompanha os passos de navegação até a próxima ação útil. Entre 17 ações definidas com o negócio, ordena até cinco por cliente.</p>
+          </li>
+        </ol>
+      </section>
+    </div>
+
+    <div class="outlook">
+      <section class="now" aria-labelledby="now">
+        <h2 class="kicker" id="now">Onde estamos · V2.3 em teste</h2>
+        <h3>Piloto com Open Finance</h3>
+        <p>O NBA já grava as previsões por cliente em uma tabela, com dados até o dia anterior. Os grupos de teste e controle estão formados. O próximo marco é o início do uso da tabela pela equipe de Open Finance.</p>
+      </section>
+
+      <section class="next" aria-labelledby="next">
+        <h2 class="kicker" id="next">Para onde vamos</h2>
+        <ol class="plan">
+          <li>
+            <h3>Medir o efeito em Open Finance.</h3>
+            <p>Após o início do consumo, comparar, na mesma janela, a proporção de clientes que realizam a ação escolhida nos grupos de teste e controle.</p>
+          </li>
+          <li>
+            <h3>V2.4 · Filtrar ações elegíveis.</h3>
+            <p>Incorporar as regras oficiais de quais ações cada cliente pode receber, assim que o negócio as disponibilizar.</p>
+          </li>
+          <li>
+            <h3>V2.5 · Considerar os hábitos do cliente.</h3>
+            <p>Usar calendário, frequência e tempo desde o último uso para captar padrões individuais, como fazer Pix no fim do mês.</p>
+          </li>
+          <li>
+            <h3>Ampliar o uso conforme os resultados.</h3>
+            <p>Se o piloto mostrar ganho, testar novas ações e canais e identificar para quais públicos a recomendação faz mais diferença.</p>
+          </li>
+        </ol>
+      </section>
+    </div>
+  </div>
+
+  <section class="data" aria-labelledby="results">
+    <header>
+      <h2 id="results" class="kicker">Acerto na avaliação histórica</h2>
+      <p class="note">Primeira ação prevista no início da etapa.<br>240 clientes com ação observada.</p>
+    </header>
+    <dl><dt>Frequência histórica</dt><dd>60,28%</dd></dl>
+    <dl><dt>Etapa + tempo</dt><dd>62,91%</dd></dl>
+    <dl><dt>Etapa + tempo + memória</dt><dd>63,92% <small>(+3,64 p.p. vs. frequência)</small></dd></dl>
+  </section>
+</main>
+<script>
+// Adjust the type scale only when the full roadmap would exceed the viewport.
+const page = document.querySelector("main");
+function fitPage() {
+  const root = document.documentElement;
+  root.style.removeProperty("font-size");
+  const available = Math.min(root.clientHeight, window.innerHeight);
+  if (available < 1 || page.getBoundingClientRect().height <= available) return;
+  let upper = parseFloat(getComputedStyle(root).fontSize);
+  let lower = 0;
+  for (let step = 0; step < 8; step += 1) {
+    const size = (upper + lower) / 2;
+    root.style.fontSize = size + "px";
+    if (page.getBoundingClientRect().height <= available - 1) lower = size;
+    else upper = size;
+  }
+  root.style.fontSize = lower + "px";
+}
+fitPage();
+window.addEventListener("resize", fitPage);
+</script>
+</body>
+</html>
